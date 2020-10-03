@@ -34,15 +34,39 @@ Oracle Database In-Memory (Database In-Memory) provides the best of both worlds 
 
 There are four basic architectural elements of the column store that enable orders of magnitude faster analytic query processing:
 
-1. *Compressed columnar storage*: Storing data contiguously in compressed column units allows an analytic query to scan only data within the required columns, instead of having to skip past unneeded data in other columns as would be needed for a row major format. Columnar storage therefore allows a query to perform highly efficient sequential memory references while compression allows the query to optimize its use of the available system (processor to memory) bandwidth.
-2. Vector processing. Modern CPUs feature highly parallel instructions known as SIMD or vector instructions(e.g. Intel AVX). These instructions can process multiple values in one instruction –for instance, they allow multiple values to be compared with a given value (e.g. find saleswith State = “California”) in one instruction. Vector processing of compressed columnar data further multiplies the scan speed obtained via columnar storage,resulting in scan speeds exceeding tens of billions of rows per second, per CPU core.
+1. #### Compressed columnar storage
+
+   Storing data contiguously in compressed column units allows an analytic query to scan only data within the required columns, instead of having to skip past unneeded data in other columns as would be needed for a row major format. Columnar storage therefore allows a query to perform highly efficient sequential memory references while compression allows the query to optimize its use of the available system (processor to memory) bandwidth.
+
+   
+
+2. #### SIMD Vector Processing 
+
+   For the data that does need to be scanned in the IM column store, Database In-Memory uses SIMD vector processing (Single Instruction processing Multiple Data values). Instead of evaluating each entry in the column one at a time, SIMD vector processing allows a set of column values to be evaluated together in a single CPU instruction. 
+
+   The columnar format used in the IM column store has been specifically designed to maximize the number of column entries that can be loaded into the vector registers on the CPU and evaluated in a single CPU instruction. SIMD vector processing enables Database In-Memory to scan billion of rows per second. 
+
+   For example, let’s use the SALES table and let’s assume we are asked to find the total number of sales orders that used the PROMO_ID value of 9999. The SALES table has been fully populated into the IM column store. The query begins by scanning just the PROMO_ID column of the SALES table. The first 8 values from the PROMO_ID column are loaded into the SIMD register on the CPU and compared with 9999 in a single CPU instruction (the number of values loaded will vary based on datatype & memory compression used). The number of entries that match 9999 is recorded, then the entries are discarded and another 8 entries are loaded into the register for evaluation. And so on until all of the entries in the PROMO_ID column have been evaluated. 
 
 ![](C:\Users\vbalebai.ORADEV\github\In-memory-workshop\In_memory\vector.png)
 
 
 
-1. *In-Memory Storage Indexes*: The IM column store for a given table is divided into units known as In-Memory Compression Units(IMCUs) that typically represent a large number of rows (typically several hundred thousand). Each IMCU automatically records the min and max values for the data within each column in the IMCU, as well as other summary information regarding the data. This metadata serves as an In-Memory Storage Index: For instance, it allows an entire IMCU to be skipped during a scan when it is known from the scan predicates that no matching value will be found within the IMCU.
-2. *In-Memory Optimized Joins and Reporting*: As a result of massive increases in scan speeds, the Bloom Filteroptimization (introduced earlier in Oracle Database 10g) can be commonly selected by the optimizer. With the Bloom Filter optimization, the scan of the outer (dimension) table generates a compact bloom filter which can then be used to greatly reduce the amount of data processed by the join from the scan of the inner (fact) table. Similarly, an optimization known as Vector Group Bycan be used to reduce a complex aggregation query on a typical star schema into a series of filtered scans against the dimension and fact tables.
+#### 3. In-Memory Storage Indexes 
+
+A further reduction in the amount of data accessed is possible due to the In-Memory Storage Indexes that are automatically created and maintained on each of the columns in the IM column store. Storage Indexes allow data pruning to occur based on the filter predicates supplied in a SQL statement. An In-Memory Storage Index keeps track of minimum and maximum values for each column in an IMCU. When a query specifies a WHERE clause predicate, the In-Memory Storage Index on the referenced column is examined to determine if any entries with the specified column value exist in each IMCU by comparing the specified value(s) to the minimum and maximum values maintained in the Storage Index. If the column value is outside the minimum and maximum range for an IMCU, the scan of that IMCU is avoided. 
+
+![](C:\Users\vbalebai.ORADEV\github\In-memory-workshop\In_memory\IMCUMIN_MAX.png)
+
+
+
+For equality, in-list, and some range predicates an additional level of data pruning is possible via the metadata dictionary created for each IMCU when dictionary-based compression is used. The metadata dictionary contains a list of the distinct values for each column within that IMCU. Dictionary based pruning allows Oracle Database to determine if the value being searched for actually exists within an IMCU, ensuring only the necessary IMCUs are scanned.
+
+![](C:\Users\vbalebai.ORADEV\github\In-memory-workshop\In_memory\DicttionPruning.png)
+
+4. #### In-Memory Optimized Joins and Reporting
+
+    As a result of massive increases in scan speeds, the Bloom Filteroptimization (introduced earlier in Oracle Database 10g) can be commonly selected by the optimizer. With the Bloom Filter optimization, the scan of the outer (dimension) table generates a compact bloom filter which can then be used to greatly reduce the amount of data processed by the join from the scan of the inner (fact) table. Similarly, an optimization known as Vector Group Bycan be used to reduce a complex aggregation query on a typical star schema into a series of filtered scans against the dimension and fact tables.
 
 ## In-Memory Architecture
 
