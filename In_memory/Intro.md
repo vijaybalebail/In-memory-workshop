@@ -37,6 +37,8 @@ There are four basic architectural elements of the column store that enable orde
 1. *Compressed columnar storage*: Storing data contiguously in compressed column units allows an analytic query to scan only data within the required columns, instead of having to skip past unneeded data in other columns as would be needed for a row major format. Columnar storage therefore allows a query to perform highly efficient sequential memory references while compression allows the query to optimize its use of the available system (processor to memory) bandwidth.
 2. Vector processing. Modern CPUs feature highly parallel instructions known as SIMD or vector instructions(e.g. Intel AVX). These instructions can process multiple values in one instruction –for instance, they allow multiple values to be compared with a given value (e.g. find saleswith State = “California”) in one instruction. Vector processing of compressed columnar data further multiplies the scan speed obtained via columnar storage,resulting in scan speeds exceeding tens of billions of rows per second, per CPU core.
 
+![](C:\Users\vbalebai.ORADEV\github\In-memory-workshop\In_memory\vector.png)
+
 
 
 1. *In-Memory Storage Indexes*: The IM column store for a given table is divided into units known as In-Memory Compression Units(IMCUs) that typically represent a large number of rows (typically several hundred thousand). Each IMCU automatically records the min and max values for the data within each column in the IMCU, as well as other summary information regarding the data. This metadata serves as an In-Memory Storage Index: For instance, it allows an entire IMCU to be skipped during a scan when it is known from the scan predicates that no matching value will be found within the IMCU.
