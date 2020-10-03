@@ -34,21 +34,21 @@ Oracle Database In-Memory (Database In-Memory) provides the best of both worlds 
 
 There are four basic architectural elements of the column store that enable orders of magnitude faster analytic query processing:
 
-1. #### Compressed columnar storage
+#### 1. Compressed columnar storage
 
-   Storing data contiguously in compressed column units allows an analytic query to scan only data within the required columns, instead of having to skip past unneeded data in other columns as would be needed for a row major format. Columnar storage therefore allows a query to perform highly efficient sequential memory references while compression allows the query to optimize its use of the available system (processor to memory) bandwidth.
+Storing data contiguously in compressed column units allows an analytic query to scan only data within the required columns, instead of having to skip past unneeded data in other columns as would be needed for a row major format. Columnar storage therefore allows a query to perform highly efficient sequential memory references while compression allows the query to optimize its use of the available system (processor to memory) bandwidth.
 
-   
+#### 2. SIMD Vector Processing 
 
-2. #### SIMD Vector Processing 
+For the data that does need to be scanned in the IM column store, Database In-Memory uses SIMD vector processing (Single Instruction processing Multiple Data values). Instead of evaluating each entry in the column one at a time, SIMD vector processing allows a set of column values to be evaluated together in a single CPU instruction. 
 
-   For the data that does need to be scanned in the IM column store, Database In-Memory uses SIMD vector processing (Single Instruction processing Multiple Data values). Instead of evaluating each entry in the column one at a time, SIMD vector processing allows a set of column values to be evaluated together in a single CPU instruction. 
+The columnar format used in the IM column store has been specifically designed to maximize the number of column entries that can be loaded into the vector registers on the CPU and evaluated in a single CPU instruction. SIMD vector processing enables Database In-Memory to scan billion of rows per second. 
 
-   The columnar format used in the IM column store has been specifically designed to maximize the number of column entries that can be loaded into the vector registers on the CPU and evaluated in a single CPU instruction. SIMD vector processing enables Database In-Memory to scan billion of rows per second. 
-
-   For example, let’s use the SALES table and let’s assume we are asked to find the total number of sales orders that used the PROMO_ID value of 9999. The SALES table has been fully populated into the IM column store. The query begins by scanning just the PROMO_ID column of the SALES table. The first 8 values from the PROMO_ID column are loaded into the SIMD register on the CPU and compared with 9999 in a single CPU instruction (the number of values loaded will vary based on datatype & memory compression used). The number of entries that match 9999 is recorded, then the entries are discarded and another 8 entries are loaded into the register for evaluation. And so on until all of the entries in the PROMO_ID column have been evaluated. 
+For example, let’s use the SALES table and let’s assume we are asked to find the total number of sales orders that used the PROMO_ID value of 9999. The SALES table has been fully populated into the IM column store. The query begins by scanning just the PROMO_ID column of the SALES table. The first 8 values from the PROMO_ID column are loaded into the SIMD register on the CPU and compared with 9999 in a single CPU instruction (the number of values loaded will vary based on datatype & memory compression used). The number of entries that match 9999 is recorded, then the entries are discarded and another 8 entries are loaded into the register for evaluation. And so on until all of the entries in the PROMO_ID column have been evaluated. 
 
 ![](C:\Users\vbalebai.ORADEV\github\In-memory-workshop\In_memory\vector.png)
+
+
 
 
 
