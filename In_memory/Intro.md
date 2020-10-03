@@ -46,7 +46,7 @@ The columnar format used in the IM column store has been specifically designed t
 
 For example, let’s use the SALES table and let’s assume we are asked to find the total number of sales orders that used the PROMO_ID value of 9999. The SALES table has been fully populated into the IM column store. The query begins by scanning just the PROMO_ID column of the SALES table. The first 8 values from the PROMO_ID column are loaded into the SIMD register on the CPU and compared with 9999 in a single CPU instruction (the number of values loaded will vary based on datatype & memory compression used). The number of entries that match 9999 is recorded, then the entries are discarded and another 8 entries are loaded into the register for evaluation. And so on until all of the entries in the PROMO_ID column have been evaluated. 
 
-![](C:\Users\vbalebai.ORADEV\github\In-memory-workshop\In_memory\vector.png)
+![](vector.png)
 
 
 
@@ -62,7 +62,7 @@ A further reduction in the amount of data accessed is possible due to the In-Mem
 
 For equality, in-list, and some range predicates an additional level of data pruning is possible via the metadata dictionary created for each IMCU when dictionary-based compression is used. The metadata dictionary contains a list of the distinct values for each column within that IMCU. Dictionary based pruning allows Oracle Database to determine if the value being searched for actually exists within an IMCU, ensuring only the necessary IMCUs are scanned.
 
-![](C:\Users\vbalebai.ORADEV\github\In-memory-workshop\In_memory\DicttionPruning.png)
+![](DicttionPruning.png)
 
 4. #### In-Memory Optimized Joins and Reporting
 
