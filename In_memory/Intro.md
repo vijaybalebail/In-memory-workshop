@@ -26,6 +26,10 @@ But what happens when a DML operation (insert, update or delete) occurs on each 
 
 Oracle Database In-Memory (Database In-Memory) provides the best of both worlds by allowing data to be simultaneously populated in both an in-memory row format (the buffer cache) and a new in-memory columnar format (in Memory pool )  a dual-format architecture. 
 
+ Until now, the only way to run analytic queries with an acceptable response on an OLTP environment was to create specific indexes for these queries. Now with in-memory , these queries can run  without the need of additional reporting indexes. This helps in reducing the storage space and also improve performance of DML operations.
+
+![](lessIndexs.png) 
+
 
 
 ## **Database In-Memory and Performance**
@@ -64,9 +68,27 @@ For equality, in-list, and some range predicates an additional level of data pru
 
 ![](DicttionPruning.png)
 
-4. #### In-Memory Optimized Joins and Reporting
+#### 4. In-Memory Optimized Joins and Reporting
 
-    As a result of massive increases in scan speeds, the Bloom Filteroptimization (introduced earlier in Oracle Database 10g) can be commonly selected by the optimizer. With the Bloom Filter optimization, the scan of the outer (dimension) table generates a compact bloom filter which can then be used to greatly reduce the amount of data processed by the join from the scan of the inner (fact) table. Similarly, an optimization known as Vector Group Bycan be used to reduce a complex aggregation query on a typical star schema into a series of filtered scans against the dimension and fact tables.
+ As a result of massive increases in scan speeds, the Bloom Filter optimization (introduced earlier in Oracle Database 10g) can be commonly selected by the optimizer. With the Bloom Filter optimization, the scan of the outer (dimension) table generates a compact bloom filter which can then be used to greatly reduce the amount of data processed by the join from the scan of the inner (fact) table. 
+
+**Join Groups** If there is no filter predicate on the dimension table (smaller table on the left hand side of the join) then a bloom filter won’t be generated and the join will be executed as a standard HASH JOIN. 
+
+Join Groups have been added to improve the performance of standard HASH JOINS in the IM column store. It allows the join columns from multiple tables to share a single compression dictionary, enabling the HASH JOINS to be conducted on the  compressed values in the join columns rather than having to decompress the data and then hash it before conducting the join.
+
+**In-Memory Aggregation** Analytic style queries often require more than just simple filters and joins. They require complex aggregations and summaries. 
+
+A new optimizer transformation, called **Vector Group By**, was introduced with Database In-Memory to ensure more complex analytic queries can be processed using new CPU-efficient algorithms. 
+
+**In-Memory Expressions** :   Analytic queries often contain complex expressions in the select list or where clause predicates that need to be evaluated for every row processed by the query. The evaluation of these complex expressions can be very resource intensive and time consuming.
+
+ In-Memory Expressions provide the ability to materialize commonly used expressions in the IM column store. Materializing these expressions not only improves the query performance by preventing the re-computation of the expression for every row but it also enables us to take advantage of all of the In-Memory query performance optimizations when we access them.
+
+**In-Memory Optimized Arithmetic :** In-Memory Optimized Arithmetic are available in 18c and encodes the NUMBER data type as a fixed-width native integer scaled by a common exponent. This enables faster calculations using SIMD hardware. The Oracle Database NUMBER data type has high fidelity and precision. However, NUMBER can incur a significant performance overhead for queries because arithmetic operations cannot be performed natively in hardware. 
+
+The In-Memory optimized number format enables native calculations in hardware for segments compressed with the QUERY LOW compression option. Not all row sources in the query processing engine have support for the In-Memory optimized number format so the IM column store stores both the traditional Oracle Database NUMBER data type and the In-Memory optimized number type. This dual storage increases the space overhead, sometimes up to 15%.
+
+**In-Memory Virtual Columns :**  User-defined virtual columns can now be populated in the IM column store. Virtual columns will be materialized as they are populated and since the expression is evaluated at population time it can be retrieved repeatedly without re-evaluation. 
 
 ## In-Memory Architecture
 
