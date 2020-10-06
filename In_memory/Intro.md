@@ -92,9 +92,21 @@ The In-Memory optimized number format enables native calculations in hardware fo
 
 ## In-Memory Architecture
 
-The following figure shows a sample IM column store. The database stores the sh.sales table on disk in traditional row format. The SGA stores the data in columnar format in the IM column store, and in row format in the database buffer cache.
+The IM column store resides in the **In-Memory Area**, which is an optional portion of the system global area (SGA). The IM column store does not *replace* row-based storage or the database buffer cache, but *supplements* it. 
 
-[![ ](https://github.com/vijaybalebail/learning-library/raw/master/data-management-library/database/in-memory/intro/images/arch.png)](https://github.com/vijaybalebail/learning-library/blob/master/data-management-library/database/in-memory/intro/images/arch.png)
+![](Immemory_area.png)
+
+The  In-Memory pool is composed of  the following 
+
+**In-Memory Compression Unit (IMCU)** A storage unit in the In-Memory Column Store that is optimized for faster scans. The In-Memory Column Store stores each column in table separately and compresses it. Each IMCU contains all columns for a subset of rows in a specific table segment. A one-to-many mapping exists between an IMCU and a set of database blocks. For example, if a table contains columns c1 through c6, and if its rows are stored in 100 database blocks on disk, then IMCU 1 might store the values for all columns for blocks 1-50, and IMCU 2 might store the values for all columns for blocks 51-100.
+
+**Snapshot Metadata Unit (SMU)** A storage unit in the In-Memory Area that contains metadata and transactional information for an associated In-Memory Compression Unit (IMCU).
+
+![](IMCUs.png)
+
+
+
+
 
 ## More Information on In-Memory
 
@@ -106,26 +118,5 @@ Please proceed to the next lab.
 
 ## Acknowledgements
 
-- **Authors/Contributors** - Andy Rivenes, Senior Principal Product Manager, In-Memory
-- **Last Updated By/Date** - Kay Malcolm, March 2020
-- **Workshop Expiration Date** - March 31, 2021
-
-See an issue? Please open up a request [here](https://github.com/oracle/learning-library/issues).
-
-<details class="details-reset details-overlay details-overlay-dark" id="jumpto-line-details-dialog" style="box-sizing: border-box; display: block;"><summary data-hotkey="l" aria-label="Jump to line" role="button" style="box-sizing: border-box; display: list-item; cursor: pointer; list-style: none;"></summary></details>
-
-- © 2020 GitHub, Inc.
-- [Terms](https://github.com/site/terms)
-- [Privacy](https://github.com/site/privacy)
-- [Security](https://github.com/security)
-- [Status](https://githubstatus.com/)
-- [Help](https://docs.github.com/)
-
-
-
-- [Contact GitHub](https://github.com/contact)
-- [Pricing](https://github.com/pricing)
-- [API](https://docs.github.com/)
-- [Training](https://services.github.com/)
-- [Blog](https://github.blog/)
-- [About](https://github.com/about)
+- **Authors/Contributors** - Vijay Balebail
+- **Workshop Expiration Date** - March 31, 2024
