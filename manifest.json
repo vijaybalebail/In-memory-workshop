@@ -1,0 +1,40 @@
+{
+    "tutorials": [
+        {
+            "title": "Introduction and Overview",
+            "description":"InMemory Overview",
+            "publisheddate": "10/15/2020",
+            "filename":"./In_memory/intro.md"
+        },
+        {
+            "title": "Lab setup",
+            "description": "Lab Setup",
+            "partnumber": "Ennnnn_01",
+            "publisheddate": "10/10/2020",
+            "contentid": "12nnnn",
+            "filename": "./about-the-workshop/Labsetup_mk.md"
+        },
+        {
+            "title": "LAB 01 :InMemory Basics",
+            "description": "Enable, load, QUERY",
+            "partnumber": "Ennnnn_01",
+            "publisheddate": "10/10/2020",
+            "contentid": "12nnnn",
+            "filename": "./In_memory/clone-plug-drop.md"
+        },
+
+        {
+            "title": "LAB 02 :InMemory Features",
+            "description":"vector joins, hints,dbms packages.",
+            "publisheddate": "04/07/2020",
+            "filename":"./mt-isolation/manage-app1.md"
+        },
+
+        {
+            "title": "LAB 03 :Mixed workoad",
+            "description":"Multitenant Application Containers",
+            "publisheddate": "04/07/2020",
+            "filename":"./mt-app-container/manage-app.md"
+        }
+    ]
+}
