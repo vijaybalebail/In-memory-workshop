@@ -28,7 +28,7 @@ Oracle Database In-Memory (Database In-Memory) provides the best of both worlds 
 
  Until now, the only way to run analytic queries with an acceptable response on an OLTP environment was to create specific indexes for these queries. Now with in-memory , these queries can run  without the need of additional reporting indexes. This helps in reducing the storage space and also improve performance of DML operations.
 
-![](lessIndexs.png)
+![](images/lessIndexs.png)
 
 
 
@@ -50,7 +50,7 @@ The columnar format used in the IM column store has been specifically designed t
 
 For example, let’s use the SALES table and let’s assume we are asked to find the total number of sales orders that used the PROMO_ID value of 9999. The SALES table has been fully populated into the IM column store. The query begins by scanning just the PROMO_ID column of the SALES table. The first 8 values from the PROMO_ID column are loaded into the SIMD register on the CPU and compared with 9999 in a single CPU instruction (the number of values loaded will vary based on datatype & memory compression used). The number of entries that match 9999 is recorded, then the entries are discarded and another 8 entries are loaded into the register for evaluation. And so on until all of the entries in the PROMO_ID column have been evaluated.
 
-![](vector.png)
+![](images/vector.png)
 
 
 
@@ -60,13 +60,13 @@ For example, let’s use the SALES table and let’s assume we are asked to find
 
 A further reduction in the amount of data accessed is possible due to the In-Memory Storage Indexes that are automatically created and maintained on each of the columns in the IM column store. Storage Indexes allow data pruning to occur based on the filter predicates supplied in a SQL statement. An In-Memory Storage Index keeps track of minimum and maximum values for each column in an IMCU. When a query specifies a WHERE clause predicate, the In-Memory Storage Index on the referenced column is examined to determine if any entries with the specified column value exist in each IMCU by comparing the specified value(s) to the minimum and maximum values maintained in the Storage Index. If the column value is outside the minimum and maximum range for an IMCU, the scan of that IMCU is avoided.
 
-![](C:\Users\vbalebai.ORADEV\github\In-memory-workshop\In_memory\IMCUMIN_MAX.png)
+![](images\IMCUMIN_MAX.png)
 
 
 
 For equality, in-list, and some range predicates an additional level of data pruning is possible via the metadata dictionary created for each IMCU when dictionary-based compression is used. The metadata dictionary contains a list of the distinct values for each column within that IMCU. Dictionary based pruning allows Oracle Database to determine if the value being searched for actually exists within an IMCU, ensuring only the necessary IMCUs are scanned.
 
-![](DicttionPruning.png)
+![](images/DicttionPruning.png)
 
 #### 4. In-Memory Optimized Joins and Reporting
 
@@ -94,7 +94,7 @@ The In-Memory optimized number format enables native calculations in hardware fo
 
 The IM column store resides in the **In-Memory Area**, which is an optional portion of the system global area (SGA). The IM column store does not *replace* row-based storage or the database buffer cache, but *supplements* it.
 
-![](Immemory_area.png)
+![](images/Immemory_area.png)
 
 The  In-Memory pool is composed of  the following
 
@@ -119,4 +119,4 @@ Please proceed to the next lab.
 ## Acknowledgements
 
 - **Authors/Contributors** - Vijay Balebail
-- **Workshop Expiration Date** - March 31, 2024
+- **Workshop Expiration Date** - July 31, 2022
