@@ -1,6 +1,8 @@
 # Enable In-Memory
 
- Oracle In-Memory is a pool within SGA. In order to setup Inmemory, we
+Oracle Database In-Memory option comes preinstalled with the Oracle Database 12c and does not require additional software installation or recompilation of existing database software. This is because the In-Memory option has been seamlessly integrated into the core of the Oracle Database software as a new component of the Shared Global Area (SGA), so when the Oracle Database is installed, Oracle Database In-Memory gets installed with it.
+However, the IM column store is not enabled by default, but can be easily enabled via a few steps, as outlined in this lesson.
+It is important to remember that after the In-Memory option is enabled at the instance level, you also have to specifically enable objects so they would be considered for In-Memory column store population.
 
 
 ## Step 1: Logging In and Enabling In-Memory
@@ -15,7 +17,10 @@
     </copy>
     ````
 
-2. In-Memory is integrated into Oracle Database 12c and higher.  The IM column store is not enabled by default, but can be easily enabled via a few steps.  Before you enable it, let's take a look at the default configuration. Set your oracle environment
+2. The In-Memory Area is a static pool within the SGA that holds the column format data (also referred to as the In-Memory Column Store). The size of the In-Memory Area is controlled by the initialization parameter INMEMORY\_SIZE (default is 0, i.e. disabled).
+As the IM column store is a static pool, any changes to the INMEMORY\_SIZE parameter will not take effect until the database instance is restarted.
+Note : It is also not impacted or controlled by Automatic Memory Management (AMM). The default install of database usually set a parameter MEMORY_TARGET which manages both SGA (System Global Area) and PGA(Process Global Area).
+
 
     ````
     . oraenv
@@ -88,7 +93,8 @@ The Oracle environment is already set up so sqlplus can be invoked directly from
     ````
      ![](images/num2.png)
 
-3.  To check if the IM column store is populated with object, run the query below.
+3.  
+To check if the IM column store is populated with object, run the query below.
 
     ````
     <copy>
