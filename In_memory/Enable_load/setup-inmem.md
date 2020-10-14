@@ -23,23 +23,23 @@ Note : It is also not impacted or controlled by Automatic Memory Management (AMM
 
 
     ````
-    . oraenv
-    ORCL
-    ````
-     ![](images/step1num1.png)
 
+    <copy>sqlplus / as sysdba ;
+    show pdbs </copy>
+    ````
+    You will observe that you are connect to CDB (Container Database) with one PDB (pluggable Database) preinstalled.
+
+
+    Next, note the memory settings and enable In-Memory.
     ````
     <copy>
-    sqlplus / as sysdba
-    show sga;
-    show parameter inmemory;
-    show parameter keep;
+    show parameter inmemory_size
+    show parameter sga_target
+    show parameter pga_aggregate_target
+    show parameter memory_target
     </copy>
     ````
 
-     ![](images/step1num2.png)
-
-    Notice that the SGA is made up of Fixed Size, Variable Size, Database Buffers and Redo.  There is no In-Memory in the SGA.  Let's enable it.
 
 3.  Enter the commands to enable In-Memory.  The database will need to be restarted for the changes to take effect.
 
@@ -50,7 +50,6 @@ Note : It is also not impacted or controlled by Automatic Memory Management (AMM
     startup;
     </copy>
     ````
-     ![](images/step1num3.png)
 
 
 4.  Now let's take a look at the parameters.
@@ -63,7 +62,7 @@ Note : It is also not impacted or controlled by Automatic Memory Management (AMM
     exit
     </copy>
     ````
-     ![](images/step1num4.png)
+
 
 ## Step 2: Enabling In-Memory
 
@@ -91,7 +90,7 @@ The Oracle environment is already set up so sqlplus can be invoked directly from
     select * from v$inmemory_area;
     </copy>
     ````
-     ![](images/num2.png)
+
 
 3.  
 To check if the IM column store is populated with object, run the query below.
@@ -105,7 +104,7 @@ To check if the IM column store is populated with object, run the query below.
     select v.owner, v.segment_name name, v.populate_status status from v$im_segments v;
     </copy>
     ````
-     ![](images/num3.png)   
+
 
 4.  To add objects to the IM column store the inmemory attribute needs to be set.  This tells the Oracle DB these tables should be populated into the IM column store.   
 
@@ -118,7 +117,6 @@ To check if the IM column store is populated with object, run the query below.
     ALTER TABLE date_dim INMEMORY;
     </copy>
     ````
-     ![](images/num4.png)   
 
 5.  This looks at the USER_TABLES view and queries attributes of tables in the SSB schema.  
 
@@ -140,9 +138,17 @@ To check if the IM column store is populated with object, run the query below.
     FROM   user_tables;
     </copy>
     ````
-     ![](images/step2num5.png)   
 
-By default the IM column store is only populated when the object is accessed.
+
+    Not all of the objects in an Oracle database need to be populated in the IM column store. This is an advantage over
+    so-called “pure” in-memory databases that require the entire database to be memory-resident. With Oracle
+    Database In-Memory, the IM column store should be populated with the most performance-critical data in the
+    database. Less performance-critical data can reside on lower cost flash or disk. Of course, if your database is small
+    enough, you can populate all of your tables into the IM column store. Database In-Memory adds a new INMEMORY
+    attribute for tables and materialized views. Only objects with the INMEMORY attribute are populated into the IM
+    column store. The INMEMORY attribute can be specified on a tablespace, table, partition, subpartition, or materialized
+    view. If it is enabled at the tablespace level, then all new tables and materialized views in the tablespace will be
+    enabled for the IM column store by default.
 
 6.  Let's populate the store with some simple queries.
 
@@ -155,7 +161,12 @@ By default the IM column store is only populated when the object is accessed.
     SELECT /*+ full(lo)  noparallel (lo )*/ Count(*) FROM   lineorder lo;
     </copy>
     ````
-     ![](images/step2num6.png)
+    By default, all of the columns in an object with the INMEMORY attribute will be populated into the IM column store.
+However, it is possible to populate only a subset of columns if desired. For example, the following statement sets the
+In-Memory attribute on the table SALES,
+ALTER TABLE sales INMEMORY NO INMEMORY(prod_id);
+
+
 
 7. Background processes are populating these segments into the IM column store.  To monitor this, you could query the V$IM_SEGMENTS.  Once the data population is complete, the BYTES_NOT_POPULATED should be 0 for each segment.  
 
