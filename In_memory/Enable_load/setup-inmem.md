@@ -1,24 +1,6 @@
 # Enable In-Memory
 
-## Introduction
-
-### Objectives
-
--   Learn how to enable In-Memory on the Oracle Database
--   Explore various views to monitor In-Memory
-
-### Lab Prerequisites
-
-This lab assumes you have completed the following labs:
-* Lab: Login to Oracle Cloud
-* Lab: Generate SSH Key
-* Lab: Environment Setup
-
-### Lab Preview
-
-Watch the video below to get an explanation of enabling the In-Memory column store.
-
-[](youtube:dZ9cnIL6KKw)
+ Oracle In-Memory is a pool within SGA. In order to setup Inmemory, we
 
 
 ## Step 1: Logging In and Enabling In-Memory
@@ -39,23 +21,23 @@ Watch the video below to get an explanation of enabling the In-Memory column sto
     . oraenv
     ORCL
     ````
-     ![](images/step1num1.png) 
+     ![](images/step1num1.png)
 
     ````
     <copy>
     sqlplus / as sysdba
     show sga;
-    show parameter inmemory; 
+    show parameter inmemory;
     show parameter keep;
     </copy>
     ````
 
-     ![](images/step1num2.png) 
+     ![](images/step1num2.png)
 
     Notice that the SGA is made up of Fixed Size, Variable Size, Database Buffers and Redo.  There is no In-Memory in the SGA.  Let's enable it.
 
 3.  Enter the commands to enable In-Memory.  The database will need to be restarted for the changes to take effect.
-   
+
     ````
     <copy>
     alter system set inmemory_size=2G scope=spfile;
@@ -63,24 +45,24 @@ Watch the video below to get an explanation of enabling the In-Memory column sto
     startup;
     </copy>
     ````
-     ![](images/step1num3.png) 
+     ![](images/step1num3.png)
 
 
 4.  Now let's take a look at the parameters.
-   
+
     ````
     <copy>
     show sga;
-    show parameter inmemory; 
+    show parameter inmemory;
     show parameter keep;
     exit
     </copy>
     ````
-     ![](images/step1num4.png) 
+     ![](images/step1num4.png)
 
 ## Step 2: Enabling In-Memory
 
-The Oracle environment is already set up so sqlplus can be invoked directly from the shell environment. Since the lab is being run in a pdb called orclpdb you must supply this alias when connecting to the ssb account. 
+The Oracle environment is already set up so sqlplus can be invoked directly from the shell environment. Since the lab is being run in a pdb called orclpdb you must supply this alias when connecting to the ssb account.
 
 1.  Login to the pdb as the SSB user.  
     ````
@@ -90,7 +72,7 @@ The Oracle environment is already set up so sqlplus can be invoked directly from
     set lines 200
     </copy>
     ````
-     ![](images/num1.png) 
+     ![](images/num1.png)
 
 2.  The In-Memory area is sub-divided into two pools:  a 1MB pool used to store actual column formatted data populated into memory and a 64K pool to store metadata about the objects populated into the IM columns store.  V$INMEMORY_AREA shows the total IM column store.  The COLUMN command in these scripts identifies the column you want to format and the model you want to use.  
 
@@ -104,7 +86,7 @@ The Oracle environment is already set up so sqlplus can be invoked directly from
     select * from v$inmemory_area;
     </copy>
     ````
-     ![](images/num2.png) 
+     ![](images/num2.png)
 
 3.  To check if the IM column store is populated with object, run the query below.
 
@@ -114,7 +96,7 @@ The Oracle environment is already set up so sqlplus can be invoked directly from
     column owner format a20
     --QUERY
 
-    select v.owner, v.segment_name name, v.populate_status status from v$im_segments v; 
+    select v.owner, v.segment_name name, v.populate_status status from v$im_segments v;
     </copy>
     ````
      ![](images/num3.png)   
@@ -148,8 +130,8 @@ The Oracle environment is already set up so sqlplus can be invoked directly from
     --QUERY    
 
     SELECT table_name, cache, buffer_pool, compression, compress_for, inmemory,
-        inmemory_priority, inmemory_distribute, inmemory_compression 
-    FROM   user_tables; 
+        inmemory_priority, inmemory_distribute, inmemory_compression
+    FROM   user_tables;
     </copy>
     ````
      ![](images/step2num5.png)   
@@ -160,14 +142,14 @@ By default the IM column store is only populated when the object is accessed.
 
     ````
     <copy>
-    SELECT /*+ full(d)  noparallel (d )*/ Count(*)   FROM   date_dim d; 
-    SELECT /*+ full(s)  noparallel (s )*/ Count(*)   FROM   supplier s; 
-    SELECT /*+ full(p)  noparallel (p )*/ Count(*)   FROM   part p; 
-    SELECT /*+ full(c)  noparallel (c )*/ Count(*)   FROM   customer c; 
-    SELECT /*+ full(lo)  noparallel (lo )*/ Count(*) FROM   lineorder lo; 
+    SELECT /*+ full(d)  noparallel (d )*/ Count(*)   FROM   date_dim d;
+    SELECT /*+ full(s)  noparallel (s )*/ Count(*)   FROM   supplier s;
+    SELECT /*+ full(p)  noparallel (p )*/ Count(*)   FROM   part p;
+    SELECT /*+ full(c)  noparallel (c )*/ Count(*)   FROM   customer c;
+    SELECT /*+ full(lo)  noparallel (lo )*/ Count(*) FROM   lineorder lo;
     </copy>
     ````
-     ![](images/step2num6.png) 
+     ![](images/step2num6.png)
 
 7. Background processes are populating these segments into the IM column store.  To monitor this, you could query the V$IM_SEGMENTS.  Once the data population is complete, the BYTES_NOT_POPULATED should be 0 for each segment.  
 
@@ -181,14 +163,14 @@ By default the IM column store is only populated when the object is accessed.
     column bytes_not_populated format 999,999,999,999,999
     --QUERY
 
-    SELECT v.owner, v.segment_name name, v.populate_status status, v.bytes bytes_in_mem, v.bytes_not_populated 
+    SELECT v.owner, v.segment_name name, v.populate_status status, v.bytes bytes_in_mem, v.bytes_not_populated
     FROM v$im_segments v;
     </copy>
     ````
 
-     ![](images/lab4step7.png) 
+     ![](images/lab4step7.png)
 
-8.  Now let's check the total space usage. 
+8.  Now let's check the total space usage.
 
     ````
     <copy>
@@ -200,11 +182,11 @@ By default the IM column store is only populated when the object is accessed.
     </copy>
     ````
 
-    ![](images/part1step8a.png) 
+    ![](images/part1step8a.png)
 
-    ![](images/part1step8b.png) 
+    ![](images/part1step8b.png)
 
-In this Step you saw that the IM column store is configured by setting the initialization parameter INMEMORY_SIZE. The IM column store is a new static pool in the SGA, and once allocated it can be resized dynamically, but it is not managed by either of the automatic SGA memory features. 
+In this Step you saw that the IM column store is configured by setting the initialization parameter INMEMORY_SIZE. The IM column store is a new static pool in the SGA, and once allocated it can be resized dynamically, but it is not managed by either of the automatic SGA memory features.
 
 You also had an opportunity to populate and view objects in the IM column store and to see how much memory they use. In this Lab we populated about 1471 MB of compressed data into the  IM column store, and the LINEORDER table is the largest of the tables populated with over 23 million rows.  Remember that the population speed depends on the CPU capacity of the system as the in-memory data compression is a CPU intensive operation. The more CPU and processes you allocate the faster the populations will occur.
 
