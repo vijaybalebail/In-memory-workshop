@@ -117,7 +117,7 @@ There are six levels, each of which provides a different level of compression an
 
     ````
     <copy>
-    ALTER TABLE lineorder INMEMORY PRIORITY CRITCAL;
+    ALTER TABLE lineorder INMEMORY PRIORITY CRITCAL MEMCOMPRESS FOR QUERY HIGH;
     ALTER TABLE part INMEMORY PRIORITY HIGH;
     ALTER TABLE customer INMEMORY PRIORITY MEFIUM;
     ALTER TABLE supplier INMEMORY PRIORITY LOW;

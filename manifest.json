@@ -27,7 +27,7 @@
             "title": "LAB 02 :InMemory Features",
             "description":"vector joins, hints,dbms packages.",
             "publisheddate": "04/07/2020",
-            "filename":"./mt-isolation/manage-app1.md"
+            "filename":"./In_memory/queries.md"
         },
 
         {
