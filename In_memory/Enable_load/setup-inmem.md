@@ -5,7 +5,8 @@ However, the IM column store is not enabled by default, but can be easily enable
 It is important to remember that after the In-Memory option is enabled at the instance level, you also have to specifically enable objects so they would be considered for In-Memory column store population.
 
 
-## Step 1: Logging In and Enabling In-Memory
+
+##  Step 1: Logging In and Enabling In-Memory
 
 1.  All scripts for this lab are stored in the labs/inmemory folder and are run as the oracle user.  Let's navigate there now.  We recommend you type the commands to get a feel for working with In-Memory. But we will also allow you to copy the commands via the COPY button.
 
@@ -19,7 +20,7 @@ It is important to remember that after the In-Memory option is enabled at the in
 
 2. The In-Memory Area is a static pool within the SGA that holds the column format data (also referred to as the In-Memory Column Store). The size of the In-Memory Area is controlled by the initialization parameter INMEMORY\_SIZE (default is 0, i.e. disabled).
 As the IM column store is a static pool, any changes to the INMEMORY\_SIZE parameter will not take effect until the database instance is restarted.
-Note : It is also not impacted or controlled by Automatic Memory Management (AMM). The default install of database usually set a parameter MEMORY_TARGET which manages both SGA (System Global Area) and PGA(Process Global Area).
+Note :  The default install of database usually set a parameter MEMORY_TARGET which manages both SGA (System Global Area) and PGA(Process Global Area). In the earlier version, AMM was not supported and we had to set SGA and PGA exclusively.
 
 
     ````
@@ -63,7 +64,6 @@ Note : It is also not impacted or controlled by Automatic Memory Management (AMM
     </copy>
     ````
 
-
 ## Step 2: Enabling In-Memory
 
 The Oracle environment is already set up so sqlplus can be invoked directly from the shell environment. Since the lab is being run in a pdb called orclpdb you must supply this alias when connecting to the ssb account.
@@ -76,7 +76,7 @@ The Oracle environment is already set up so sqlplus can be invoked directly from
     set lines 200
     </copy>
     ````
-     ![](images/num1.png)
+
 
 2.  The In-Memory area is sub-divided into two pools:  a 1MB pool used to store actual column formatted data populated into memory and a 64K pool to store metadata about the objects populated into the IM columns store.  V$INMEMORY_AREA shows the total IM column store.  The COLUMN command in these scripts identifies the column you want to format and the model you want to use.  
 
@@ -106,17 +106,31 @@ To check if the IM column store is populated with object, run the query below.
     ````
 
 
-4.  To add objects to the IM column store the inmemory attribute needs to be set.  This tells the Oracle DB these tables should be populated into the IM column store.   
+4.  To add objects to the IM column store the inmemory attribute needs to be set.  This tells the Oracle DB these tables should be populated into the IM column store.
+Objects are populated into the IM column store either in a prioritized list immediately after the database is opened or
+after they are scanned (queried) for the first time. The order in which objects are populated is controlled by the
+keyword PRIORITY, which has five levels. The default PRIORITY is NONE, which means an object is populated only after it is scanned for the first time. All objects at a given priority level must be fully populated before the population of any objects at a lower priority level can commence. However, the population order can be superseded if an object without a PRIORITY is scanned, triggering its population into IM column store.
+In-memory compression is specified using the keyword MEMCOMPRESS, a sub-clause of the INMEMORY attribute.
+There are six levels, each of which provides a different level of compression and performance.
+
+ ![](images/compress.png)
 
     ````
     <copy>
-    ALTER TABLE lineorder INMEMORY;
-    ALTER TABLE part INMEMORY;
-    ALTER TABLE customer INMEMORY;
-    ALTER TABLE supplier INMEMORY;
-    ALTER TABLE date_dim INMEMORY;
+    ALTER TABLE lineorder INMEMORY PRIORITY CRITCAL;
+    ALTER TABLE part INMEMORY PRIORITY HIGH;
+    ALTER TABLE customer INMEMORY PRIORITY MEFIUM;
+    ALTER TABLE supplier INMEMORY PRIORITY LOW;
+    ALTER TABLE date_dim INMEMORY ;
     </copy>
     ````
+    By default, all of the columns in an object with the INMEMORY attribute will be populated into the IM column store.
+However, it is possible to populate only a subset of columns if desired. For example, the following statement sets the
+E.g Enabling the In-Memory attribute on the sales table but excluding the prod_id column
+ALTER TABLE sales INMEMORY NO INMEMORY(prod_id)
+
+Similarly, for a partitioned table, all of the table's partitions inherit the in-memory attribute but it is possible to
+populate just a subset of the partitions or subpartitions.
 
 5.  This looks at the USER_TABLES view and queries attributes of tables in the SSB schema.  
 
@@ -140,16 +154,6 @@ To check if the IM column store is populated with object, run the query below.
     ````
 
 
-    Not all of the objects in an Oracle database need to be populated in the IM column store. This is an advantage over
-    so-called “pure” in-memory databases that require the entire database to be memory-resident. With Oracle
-    Database In-Memory, the IM column store should be populated with the most performance-critical data in the
-    database. Less performance-critical data can reside on lower cost flash or disk. Of course, if your database is small
-    enough, you can populate all of your tables into the IM column store. Database In-Memory adds a new INMEMORY
-    attribute for tables and materialized views. Only objects with the INMEMORY attribute are populated into the IM
-    column store. The INMEMORY attribute can be specified on a tablespace, table, partition, subpartition, or materialized
-    view. If it is enabled at the tablespace level, then all new tables and materialized views in the tablespace will be
-    enabled for the IM column store by default.
-
 6.  Let's populate the store with some simple queries.
 
     ````
@@ -158,7 +162,7 @@ To check if the IM column store is populated with object, run the query below.
     SELECT /*+ full(s)  noparallel (s )*/ Count(*)   FROM   supplier s;
     SELECT /*+ full(p)  noparallel (p )*/ Count(*)   FROM   part p;
     SELECT /*+ full(c)  noparallel (c )*/ Count(*)   FROM   customer c;
-    SELECT /*+ full(lo)  noparallel (lo )*/ Count(*) FROM   lineorder lo;
+    SELECT /*+ full(lo) noparallel (lo )*/ Count(*) FROM   lineorder lo;
     </copy>
     ````
     By default, all of the columns in an object with the INMEMORY attribute will be populated into the IM column store.
@@ -185,7 +189,7 @@ ALTER TABLE sales INMEMORY NO INMEMORY(prod_id);
     </copy>
     ````
 
-     ![](images/lab4step7.png)
+
 
 8.  Now let's check the total space usage.
 
@@ -199,9 +203,6 @@ ALTER TABLE sales INMEMORY NO INMEMORY(prod_id);
     </copy>
     ````
 
-    ![](images/part1step8a.png)
-
-    ![](images/part1step8b.png)
 
 In this Step you saw that the IM column store is configured by setting the initialization parameter INMEMORY_SIZE. The IM column store is a new static pool in the SGA, and once allocated it can be resized dynamically, but it is not managed by either of the automatic SGA memory features.
 
@@ -210,10 +211,3 @@ You also had an opportunity to populate and view objects in the IM column store 
 Finally you got to see how to determine if the objects were fully populated and how much space was being consumed in the IM column store.
 
 You may now proceed to the next lab.
-
-## Acknowledgements
-
-- **Author** - Andy Rivenes, Sr. Principal Product Manager, Oracle Database In-Memory
-- **Last Updated By/Date** - Kay Malcolm, Director, DB Product Management, March 2020
-
-See an issue?  Please open up a request [here](https://github.com/oracle/learning-library/issues).
