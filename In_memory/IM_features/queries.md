@@ -2,17 +2,6 @@
 
 ## Introduction
 
-### Objectives
-
--   Perform various queries on the In-Memory Column Store
-
-### Lab Prerequisites
-
-This lab assumes you have completed the following labs:
-* Lab: Login to Oracle Cloud
-* Lab: Generate SSH Key
-* Lab: Environment Setup
-* Lab: Enabling In-Memory
 
 ### Lab Preview
 
@@ -24,7 +13,7 @@ Watch a preview video of querying the In-Memory Column Store
 
 Now that you’ve gotten familiar with the IM column store let’s look at the benefits of using it. You will execute a series of queries against the large fact table LINEORDER, in both the buffer cache and the IM column store, to demonstrate the different ways the IM column store can improve query performance above and beyond the basic performance benefits of accessing data in memory only.
 
-1.  Let's switch to the Part2 folder and log back in to the PDB. 
+1.  Let's switch to the Part2 folder and log back in to the PDB.
     ````
     <copy>
     cd /home/oracle/labs/inmemory/Part2
@@ -33,9 +22,9 @@ Now that you’ve gotten familiar with the IM column store let’s look at the b
     set lines 100
     </copy>
     ````
-    ![](images/step1num1.png) 
+    ![](images/step1num1.png)
 
-2.  Let's begin with a simple query:  *What is the most expensive order we have received to date?*  There are no indexes or views setup for this.  So the execution plan will be to do a full table scan of the LINEORDER table.  Note the elapsed time. 
+2.  Let's begin with a simple query:  *What is the most expensive order we have received to date?*  There are no indexes or views setup for this.  So the execution plan will be to do a full table scan of the LINEORDER table.  Note the elapsed time.
 
     ````
     <copy>
@@ -55,9 +44,9 @@ Now that you’ve gotten familiar with the IM column store let’s look at the b
     ````
     The execution plan shows that we performed a TABLE ACCESS INMEMORY FULL of the LINEORDER table.
 
-    ![](images/step1num2.png) 
+    ![](images/step1num2.png)
 
-3.  To execute the same query against the buffer cache you will need to disable the IM column store via a hint called NO_INMEMORY. If you don't, the Optimizer will try to access the data in the IM column store when the execution plan is a full table scan. 
+3.  To execute the same query against the buffer cache you will need to disable the IM column store via a hint called NO_INMEMORY. If you don't, the Optimizer will try to access the data in the IM column store when the execution plan is a full table scan.
 
     ````
     <copy>
@@ -78,7 +67,7 @@ Now that you’ve gotten familiar with the IM column store let’s look at the b
     ````
 
      ![](images/num3.png)    
-   
+
 
     As you can see the query executed extremely quickly in both cases because this is purely an in-memory scan. However, the performance of the query against the IM column store was significantly faster than the traditional buffer cache - why?  
 
@@ -90,7 +79,7 @@ Now that you’ve gotten familiar with the IM column store let’s look at the b
 
     As our query did a full table scan of the LINEORDER table, that session statistic shows that we scanned 23 million rows from the IM column store. Notice that in our second buffer cache query that statistic does not show up. Only one statistic shows up, "IM scan segments disk" with a value of 1. This means that even though the LINEORDER table is in the IM column store (IM segment) we actually scan that segment outside of the column store either from disk or the buffer cache. In this case it’s from the buffer cache, as the query did no physical IO.
 
-4.  Let's look for a specific order in the LINEORDER table based on the order key.  Typically, a full table scan is not an efficient execution plan when looking for a specific entry in a table. 
+4.  Let's look for a specific order in the LINEORDER table based on the order key.  Typically, a full table scan is not an efficient execution plan when looking for a specific entry in a table.
 
     ````
     <copy>
@@ -107,8 +96,8 @@ Now that you’ve gotten familiar with the IM column store let’s look at the b
     @../imstats.sql
     </copy>
     ````
-   
-    ![](images/num4.png) 
+
+    ![](images/num4.png)
 
 5.  Think indexing lo_orderkey would provide the same performance as the IM column store? There is an invisible index already created on the lo_orderkey column of the LINEORDER table. By using the parameter OPTIMIZER_USE_INVISIBLE_INDEXES we can compare the performance of the IM column store and the index. Let's see how well the index performs.  
 
@@ -130,9 +119,9 @@ Now that you’ve gotten familiar with the IM column store let’s look at the b
     </copy>
     ````
 
-    ![](images/num5.png) 
+    ![](images/num5.png)
 
-    ![](images/num5b.png) 
+    ![](images/num5b.png)
 
 6.  Analytical queries have more than one equality WHERE clause predicate. What happens when there are multiple single column predicates on a table? Traditionally you would create a multi-column index. Can storage indexes compete with that?  
 
