@@ -85,6 +85,40 @@ Now that you’ve gotten familiar with the IM column store let’s look at the b
    	<b>IM scan CUs columns theoretical max = 748</b> is count of columns that would be accessed if each scan looked at all columns units (CUs) in all IMCUs for that column. However, the IMCUs actually accessed is <b>IM scan CUs memcompress for query low = 44</b>. This optimization is due to elimination of column access storing Min/Max info for each IMCU column structure.
     As the query did not have a filter, it was expected to scan all IMCUs and all CUs within the IMCU for the segment that is if there wouldn’t be column projection, but as you can see, only one column CU per IMCU is touched because of column projection. This is evident in the IM scan CU columns theoretical max value of 748 (44 IMCUs x 17 columns) from which IM scan CUs columns accessed are only 44 which happen to be the total IMCUs for 1 column.
 
+    ````
+    query string is :
+      select
+      max(lo_ordtotalprice) most_expensive_order,
+      sum(lo_quantity) total_items
+      from
+      LINEORDER
+
+IN MEMORY PLAN
+Plan hash value: 2267213921
+
+-----------------------------------------------------------------------------------------
+| Id  | Operation                   | Name      | Rows  | Bytes | Cost (%CPU)| Time     |
+-----------------------------------------------------------------------------------------
+|   0 | SELECT STATEMENT            |           |     1 |     9 |  2045  (12)| 00:00:01 |
+|   1 |  SORT AGGREGATE             |           |     1 |     9 |            |          |
+|   2 |   TABLE ACCESS INMEMORY FULL| LINEORDER |    23M|   205M|  2045  (12)| 00:00:01 |
+-----------------------------------------------------------------------------------------
+
+BUFFER CACHE PLAN
+Plan hash value: 2267213921
+
+--------------------------------------------------------------------------------
+| Id  | Operation          | Name      | Rows  | Bytes | Cost (%CPU)| Time     |
+--------------------------------------------------------------------------------
+|   0 | SELECT STATEMENT   |           |     1 |     9 | 48865   (1)| 00:00:02 |
+|   1 |  SORT AGGREGATE    |           |     1 |     9 |            |          |
+|   2 |   TABLE ACCESS FULL| LINEORDER |    23M|   205M| 48865   (1)| 00:00:02 |
+--------------------------------------------------------------------------------
+
+.04 sec in memory, 10.39 sec in SGA ----
+260 X times faster
+````
+
 3.  To execute the same query against the buffer cache you will need to disable the IM column store via a hint called NO_INMEMORY or at session level and disable INMEMORY_QUERY.
 
 ````
