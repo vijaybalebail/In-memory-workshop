@@ -22,7 +22,7 @@ Now that you’ve gotten familiar with the IM column store let’s look at the b
     set lines 100
     </copy>
     ````
-    ![](images/step1num1.png)
+
 
 2.  Let's begin with a simple query:  *What is the most expensive order we have received to date?*  There are no indexes or views setup for this.  So the execution plan will be to do a full table scan of the LINEORDER table.  Note the elapsed time.
 
@@ -44,7 +44,6 @@ Now that you’ve gotten familiar with the IM column store let’s look at the b
     ````
     The execution plan shows that we performed a TABLE ACCESS INMEMORY FULL of the LINEORDER table.
 
-    ![](images/step1num2.png)
 
 3.  To execute the same query against the buffer cache you will need to disable the IM column store via a hint called NO_INMEMORY. If you don't, the Optimizer will try to access the data in the IM column store when the execution plan is a full table scan.
 
@@ -66,7 +65,6 @@ Now that you’ve gotten familiar with the IM column store let’s look at the b
     </copy>
     ````
 
-     ![](images/num3.png)    
 
 
     As you can see the query executed extremely quickly in both cases because this is purely an in-memory scan. However, the performance of the query against the IM column store was significantly faster than the traditional buffer cache - why?  
