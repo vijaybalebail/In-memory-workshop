@@ -18,16 +18,15 @@ Now that you’ve gotten familiar with the IM column store let’s look at the b
     <copy>
     cd /home/oracle/labs/inmemory/Part2
     sqlplus ssb/Ora_DB4U@localhost:1521/orclpdb
-    set pages 9999
-    set lines 100
     </copy>
     ````
-
 
 2.  Let's begin with a simple query:  *What is the most expensive order we have received to date?*  There are no indexes or views setup for this.  So the execution plan will be to do a full table scan of the LINEORDER table.  Note the elapsed time.
 
     ````
     <copy>
+    set pages 9999
+    set lines 100
     set timing on
 
     SELECT
@@ -42,26 +41,73 @@ Now that you’ve gotten familiar with the IM column store let’s look at the b
     @../imstats.sql
     </copy>
     ````
+
+
+
     The execution plan shows that we performed a TABLE ACCESS INMEMORY FULL of the LINEORDER table.
+   ````
+       MOST_EXPENSIVE_ORDER TOTAL_ITEMS
+    -------------------- -----------
+               55279127   612025456
 
+    Elapsed: 00:00:00.06
+    SQL>
+    PLAN_TABLE_OUTPUT
+    --------------------------------------------------------------------------------------
+    SQL_ID  3pq3q3v6x27p9, child number 0
+    -------------------------------------
+    SELECT max(lo_ordtotalprice) most_expensive_order, sum(lo_quantity)
+    total_items FROM lineorder
 
-3.  To execute the same query against the buffer cache you will need to disable the IM column store via a hint called NO_INMEMORY. If you don't, the Optimizer will try to access the data in the IM column store when the execution plan is a full table scan.
+    Plan hash value: 2267213921
+
+    -----------------------------------------------------------------------------------------
+    | Id  | Operation                   | Name      | Rows  | Bytes | Cost (%CPU)| Time     |
+    -----------------------------------------------------------------------------------------
+    |   0 | SELECT STATEMENT            |           |       |       |  2045 (100)|          |
+    |   1 |  SORT AGGREGATE             |           |     1 |     9 |            |          |
+    |   2 |   TABLE ACCESS INMEMORY FULL| LINEORDER |    23M|   205M|  2045  (12)| 00:00:01 |
+    -----------------------------------------------------------------------------------------
+
+    NAME                                                              VALUE
+    -------------------------------------------------- --------------------
+    CPU used by this session                                             22
+    IM scan CUs columns accessed                                         88
+    IM scan CUs columns theoretical max                                 748
+    IM scan CUs memcompress for query low                                44
+    IM scan rows                                                   23996604
+    IM scan rows projected                                               44
+    session logical reads                                            179354
+    session logical reads - IM                                       178671
+    session pga memory                                             12779928
+    table scans (IM)                                                      1
+    ````
+   	<b>IM scan CUs columns theoretical max = 748</b> is count of columns that would be accessed if each scan looked at all columns units (CUs) in all IMCUs for that column. However, the IMCUs actually accessed is <b>IM scan CUs memcompress for query low = 44</b>. This optimization is due to elimination of column access storing Min/Max info for each IMCU column structure.
+    As the query did not have a filter, it was expected to scan all IMCUs and all CUs within the IMCU for the segment that is if there wouldn’t be column projection, but as you can see, only one column CU per IMCU is touched because of column projection. This is evident in the IM scan CU columns theoretical max value of 748 (44 IMCUs x 17 columns) from which IM scan CUs columns accessed are only 44 which happen to be the total IMCUs for 1 column.
+
+3.  To execute the same query against the buffer cache you will need to disable the IM column store via a hint called NO_INMEMORY or at session level and disable INMEMORY_QUERY.
+
+````
+ALTER SESSION SET INMEMORY_QUERY=DIAABLE|ENABLE;
+````
+
+ If you don't, the Optimizer will try to access the data in the IM column store when the execution plan is a full table scan.
+
 
     ````
     <copy>
-    set timing on
+      set timing on
 
-    select /*+ NO_INMEMORY */
-    max(lo_ordtotalprice) most_expensive_order,
-    sum(lo_quantity) total_items
-    from
-    LINEORDER;
+      select /*+ NO_INMEMORY */
+      max(lo_ordtotalprice) most_expensive_order,
+      sum(lo_quantity) total_items
+      from
+      LINEORDER;
+      set timing off
 
-    set timing off
+      select * from table(dbms_xplan.display_cursor());
 
-    select * from table(dbms_xplan.display_cursor());
-
-    @../imstats.sql
+      @../imstats.sql
     </copy>
     ````
 
