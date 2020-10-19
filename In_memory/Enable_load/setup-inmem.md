@@ -110,10 +110,28 @@ To check if the IM column store is populated with object, run the query below.
 Objects are populated into the IM column store either in a prioritized list immediately after the database is opened or
 after they are scanned (queried) for the first time. The order in which objects are populated is controlled by the
 keyword PRIORITY, which has five levels. The default PRIORITY is NONE, which means an object is populated only after it is scanned for the first time. All objects at a given priority level must be fully populated before the population of any objects at a lower priority level can commence. However, the population order can be superseded if an object without a PRIORITY is scanned, triggering its population into IM column store.
+
+To enable an existing table for the IM column store, you would use the ALTER table DDL with the INMEMORY clause and the PRIORITY parameter. The syntax for this statement is:
+	ALTER TABLE … INMEMORY PRIORITY [NONE|LOW|MEDIUM|HIGH|CRITICAL]
+
 In-memory compression is specified using the keyword MEMCOMPRESS, a sub-clause of the INMEMORY attribute.
 There are six levels, each of which provides a different level of compression and performance.
 
  ![](images/compress.png)
+
+ 5. Let us create a table and enable In-Memory.
+
+ ````
+ <copy>
+  CREATE TABLE bonus
+  (id number,
+   emp_id number,
+   bonus NUMBER
+   year date) INMEMORY;
+  </copy>
+  ````
+
+ 6. Alter existing tables and enable In-Memory.
 
     ````
     <copy>
@@ -132,7 +150,7 @@ ALTER TABLE sales INMEMORY NO INMEMORY(prod_id)
 Similarly, for a partitioned table, all of the table's partitions inherit the in-memory attribute but it is possible to
 populate just a subset of the partitions or subpartitions.
 
-5.  This looks at the USER_TABLES view and queries attributes of tables in the SSB schema.  
+7.  This looks at the USER_TABLES view and queries attributes of tables in the SSB schema.  
 
     ````
     <copy>
@@ -154,7 +172,7 @@ populate just a subset of the partitions or subpartitions.
     ````
 
 
-6.  Let's populate the store with some simple queries.
+8.  Let's populate the store with some simple queries.
 
     ````
     <copy>
@@ -172,7 +190,7 @@ ALTER TABLE sales INMEMORY NO INMEMORY(prod_id);
 
 
 
-7. Background processes are populating these segments into the IM column store.  To monitor this, you could query the V$IM_SEGMENTS.  Once the data population is complete, the BYTES_NOT_POPULATED should be 0 for each segment.  
+9. Background processes are populating these segments into the IM column store.  To monitor this, you could query the V$IM_SEGMENTS.  Once the data population is complete, the BYTES_NOT_POPULATED should be 0 for each segment.  
 
     ````
     <copy>
@@ -191,7 +209,7 @@ ALTER TABLE sales INMEMORY NO INMEMORY(prod_id);
 
 
 
-8.  Now let's check the total space usage.
+10.  Now let's check the total space usage.
 
     ````
     <copy>
@@ -204,10 +222,22 @@ ALTER TABLE sales INMEMORY NO INMEMORY(prod_id);
     ````
 
 
-In this Step you saw that the IM column store is configured by setting the initialization parameter INMEMORY_SIZE. The IM column store is a new static pool in the SGA, and once allocated it can be resized dynamically, but it is not managed by either of the automatic SGA memory features.
+    In this Step you saw that the IM column store is configured by setting the initialization parameter INMEMORY_SIZE. The IM column store is a new static pool in the SGA, and once allocated it can be resized dynamically, but it is not managed by either of the automatic SGA memory features.
 
-You also had an opportunity to populate and view objects in the IM column store and to see how much memory they use. In this Lab we populated about 1471 MB of compressed data into the  IM column store, and the LINEORDER table is the largest of the tables populated with over 23 million rows.  Remember that the population speed depends on the CPU capacity of the system as the in-memory data compression is a CPU intensive operation. The more CPU and processes you allocate the faster the populations will occur.
+    You also had an opportunity to populate and view objects in the IM column store and to see how much memory they use. In this Lab we populated about 1471 MB of compressed data into the  IM column store, and the LINEORDER table is the largest of the tables populated with over 23 million rows.  Remember that the population speed depends on the CPU capacity of the system as the in-memory data compression is a CPU intensive operation. The more CPU and processes you allocate the faster the populations will occur.
 
-Finally you got to see how to determine if the objects were fully populated and how much space was being consumed in the IM column store.
-
-You may now proceed to the next lab.
+11. 	Disabling a table
+To disable a table for the IM column store, use the NO INMEMORY clause. Once a table is disabled, its information is purged from the data dictionary views, metadata from the IM column store is cleared, and its in-memory column representation invalidated.
+````
+<copy>
+ALTER TABLE bonus NO INMEMORY ;
+</copy>
+````
+12.	Check the in-memory attributes for table.
+````
+<copy>
+SELECT INMEMORY, INMEMORY_PRIORITY, INMEMORY_COMPRESSION, INMEMORY_DISTRIBUTE, INMEMORY_DUPLICATE
+FROM USER_TABLES
+WHERE TABLE_NAME = 'BONUS';
+</copy>
+````
