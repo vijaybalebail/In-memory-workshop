@@ -1,0 +1,1423 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<displays>
+<folder>
+	<name><![CDATA[In_memory_monitoring]]></name>
+	<tooltip><![CDATA[In_memory_monitoring]]></tooltip>
+	<description><![CDATA[ ]]></description>
+		<display id="a3991837-0148-1000-8003-0a9fb866e52c" type="" style="plsql-dbms_output" enable="true">
+		<name><![CDATA[load runstats]]></name>
+		<description><![CDATA[]]></description>
+		<tooltip><![CDATA[]]></tooltip>
+		<drillclass><![CDATA[]]></drillclass>
+		<CustomValues>
+		</CustomValues>
+		<query>
+			<sql><![CDATA[declare
+ string1 varchar2(32) ;
+ string2 varchar2(8000);
+ i_cur sys_refcursor;
+ cnt number;
+begin
+ select sys_context('USERENV', 'CURRENT_USER') into string1 from dual;
+ dbms_output.put_line('<PRE>');
+ select count(*) into  cnt from ALL_TAB_PRIVS where grantor='SYS' and
+table_name in ('V_$LATCH','V_$SESSTAT','V_$TIMER','V_$STATNAME','V_$MYSTAT') and grantee=string1;
+ --dbms_output.put_line(cnt );
+  if ( cnt != 5) then
+  dbms_output.put_line('As a sys user please grant access to following tables and run again');
+  dbms_output.put_line('grant select on SYS.V_$STATNAME to '||string1||';');
+  dbms_output.put_line('grant select on SYS.V_$MYSTAT to '||string1||';');
+  dbms_output.put_line('grant select on SYS.V_$TIMER to '||string1||';');
+  dbms_output.put_line('grant select on SYS.V_$LATCH to '||string1||';');
+  dbms_output.put_line('grant select on SYS.V_$SESSTAT to '||string1||';');
+  end if;
+  string2:='create global temporary table run_stats ( runid varchar2(15),name varchar2(80), value int ) on commit preserve rows';
+  begin
+  execute immediate string2 ;
+  dbms_output.put_line('Table Created');
+  exception when others then
+  dbms_output.put_line(sqlerrm);
+  -- dbms_output.put_line('temp table is already created');
+  end;
+  string2:='create or replace view stats as select ''STAT...'' || a.name name, b.value
+      from v$statname a, v$mystat b  where a.statistic# = b.statistic#
+    union all
+    select ''LATCH.'' || name,  gets from v$latch
+          union all
+          select ''STAT...Elapsed Time'', hsecs from v$timer';
+   begin
+   execute immediate string2 ;
+   dbms_output.put_line('view recreated');
+   exception when others then
+  dbms_output.put_line(sqlerrm);
+  end;
+  -- load package
+  string2:='create or replace
+package xt_runstats
+as
+   TYPE objnumset IS TABLE OF INTEGER ;
+   TYPE objvcset  IS TABLE OF VARCHAR2(4000);
+   procedure init (
+                    p_sid     in number :=userenv(''SID'')
+                   ,p_latches in boolean:=false
+                   ,p_stats   in boolean:=true
+                  );
+   /**
+    * Snapping stats after next run test.
+    */
+   procedure snap (
+                    p_header  in varchar2:=null
+                  );
+   /**
+    * Print results.
+    * @param p_latches_mask   Mask for filtering latches by name
+    * @param p_stats_mask     Mask for filtering stats by name
+    * @param p_lat_diff_pct   Print only latches with difference of gets between runs more or equal than specified percentage
+    * @param p_sta_diff_pct   Print only stats with difference between runs more or equal than specified percentage
+    */
+   procedure print( p_latches_mask in varchar2 default ''.''
+                   ,p_stats_mask   in varchar2 default ''.''
+                   ,p_lat_diff_pct in number   default 10
+                   ,p_sta_diff_pct in number   default 10
+                  );
+end xt_runstats;';
+   begin
+   execute immediate string2 ;
+   dbms_output.put_line('package recompiled in user '||string1);
+   exception when others then
+  dbms_output.put_line(sqlerrm);
+  end;
+  -- load package body
+  string2:='create or replace package body xt_runstats
+as
+
+   cursor c_stats(p_sid in number) is
+      select a.statistic#,a.name name, b.value
+      from v$statname a
+         , v$sesstat b
+      where a.statistic# = b.statistic#
+        and b.sid        = p_sid
+      order by  a.name;
+
+   cursor c_latches is
+      select l.latch#,l.name, l.gets value
+      from v$latch l
+      order by l.latch#;
+   --fix vijay balebail 09/09/2020  
+   -- Create type x1 as table of number;
+   --GRANT EXECUTE ON x1 TO PUBLIC;
+   -- CREATE OR REPLACE PUBLIC SYNONYM x1 FOR sys.x1;
+      g_starts2 objnumset;
+     g_starts  objnumset;
+  -- g_starts     sys.ku$_objnumset; 
+   type t_stats   is table of c_stats%rowtype   index by binary_integer;
+   type t_latches is table of c_latches%rowtype index by binary_integer;
+
+   type t_run_data is record(
+                   stats   t_stats
+                  ,latches t_latches
+   );
+   type t_runs is table of t_run_data
+                   index by binary_integer;
+
+   g_sid        number;
+   g_start      number;
+   g_runs_count int:=0;
+   g_runs       t_runs;
+
+   g_headers    objvcset;
+
+   g_latches    boolean;
+   g_stats      boolean;
+   /* end declarations */
+
+   /* procedures: */
+   procedure init (
+                    p_sid     in number :=userenv(''SID'')
+                   ,p_latches in boolean:=false
+                   ,p_stats   in boolean:=true
+                  )
+   is
+   begin
+      g_sid     := p_sid;
+      g_latches := p_latches;
+      g_stats   := p_stats;
+      g_headers := objvcset();
+      if g_runs is not null then
+         g_runs.delete;
+      end if;
+      if g_starts is not null then
+         g_starts.delete;
+      else
+         g_starts:=objnumset();
+      end if;
+      -- save:
+      g_runs_count:=0;
+      if g_stats then
+         open c_stats(g_sid);
+         fetch c_stats bulk collect into g_runs(g_runs_count).stats;
+         close c_stats;
+      end if;
+
+      if g_latches then
+         open c_latches;
+         fetch c_latches bulk collect into g_runs(g_runs_count).latches;
+         close c_latches;
+      end if;
+      g_start := dbms_utility.get_time;
+   end;
+
+   procedure snap( p_header  in varchar2:=null )
+   is
+   begin
+      g_runs_count := g_runs_count + 1;
+      g_headers.extend;
+      g_headers(g_runs_count) := nvl(p_header,''Run #''||g_runs_count);
+      g_starts.extend;
+      g_starts(g_runs_count) := dbms_utility.get_time-g_start;
+
+
+      if g_stats then
+         open c_stats(g_sid);
+         fetch c_stats bulk collect into g_runs(g_runs_count).stats;
+         close c_stats;
+      end if;
+
+      if g_latches then
+         open c_latches;
+         fetch c_latches bulk collect into g_runs(g_runs_count).latches;
+         close c_latches;
+      end if;
+
+      g_start :=dbms_utility.get_time;
+   end;
+
+   procedure print( p_latches_mask in varchar2 default ''.''
+                   ,p_stats_mask   in varchar2 default ''.''
+                   ,p_lat_diff_pct in number   default 10
+                   ,p_sta_diff_pct in number   default 10
+                  )
+   is
+      v_str        varchar2(32767);
+      v_changed    boolean;
+      v_delta_old  number;
+      v_delta_cur  number;
+      c_name_len   constant number       :=40;
+      c_val_mask   constant varchar2(30) :=''9,999,999,999'';
+      c_delim      constant varchar2(3)  :='' | '';
+      c_tab_len    number:=80;
+
+      /* table border */
+      procedure hr is
+      begin
+        dbms_output.put_line(lpad(''#'',c_tab_len,''#''));
+      end;
+
+      /* print_header */
+      procedure print_header(p_str in varchar2) is
+         v_head varchar2(32767);
+      begin
+         v_head := rpad( p_str,c_name_len+1 ,'' '');
+
+         for i in 1..g_runs_count
+         loop
+            v_head:= v_head || c_delim
+                            || rpad(g_headers(i),length(c_val_mask)+1,'' '');
+         end loop;
+         c_tab_len := length(v_head);
+         hr();
+         dbms_output.put_line( v_head );
+         hr();
+      end;
+
+      /* format_name */
+      function format_name(p_str in varchar2) return varchar2
+      is
+      begin
+         return rpad( p_str, c_name_len, ''.'');
+      end;
+
+      /* abs delta percents */
+      function delta_pct(p1 number, p2 number) return number
+      is
+      begin
+        return abs( 
+                   (p2-p1)
+                   /case p2 when 0 then 1 else p2 end
+                  );
+      end;
+
+      /* print_latches */
+      procedure print_latches is
+      begin
+         print_header('' Latches '');
+         
+         hr();
+         dbms_output.put_line(''- '');
+      end;
+
+      /* print_stats */
+      procedure print_stats is
+      begin
+         print_header('' Statistics '');
+         for i in 1..g_runs(0).stats.count
+         loop
+            v_changed:=false;
+            v_str := format_name( g_runs(0).stats(i).name);
+            if regexp_like(v_str,p_stats_mask,''i'')
+            then-- start by mask:
+               for j in 1..g_runs_count
+               loop
+                  v_delta_cur := g_runs( j ).stats(i).value
+                               - g_runs(j-1).stats(i).value;
+                  if g_runs_count=1
+                     or (j>1 and p_sta_diff_pct/100 <= delta_pct(v_delta_old,v_delta_cur))
+                  then
+                     v_changed := true;
+                  end if;
+                  v_str :=   v_str
+                          || c_delim
+                          || to_char(
+                                      v_delta_cur
+                                     ,c_val_mask
+                                    );
+                  v_delta_old := v_delta_cur;
+               end loop;
+               if v_changed then
+                  dbms_output.put_line(v_str);
+               end if;
+             end if;--end masking
+         end loop;
+         hr();
+         dbms_output.put_line(''- '');
+      end print_stats;
+   /* print: main body */
+   begin
+     
+
+      for i in 1..g_runs_count
+      loop
+         dbms_output.put_line ( ''Run #''||to_char(i,''909'')||'' ran in '' || round(g_starts(i)/100,2) || ''  seconds'');
+      end loop; 
+     
+     
+      if g_stats then
+         print_stats;
+      end if;
+
+      if g_latches then
+         print_latches;
+      end if;
+   end print;
+
+end xt_runstats;';
+
+begin
+string2:=replace(string2,' ' || chr(10), chr(10));
+
+EXECUTE IMMEDIATE string2;
+   dbms_output.put_line('Package body recompiled in user '||string1);
+   dbms_output.put_line('You are ready to run the report');
+   exception when others then 
+  dbms_output.put_line(sqlerrm);
+end;
+  end;]]></sql>
+		</query>
+			<pdf version="VERSION_1_7" compression="CONTENT">
+				<docproperty title="" author="" subject="" keywords="" />
+				<cell toppadding="2" bottompadding="2" leftpadding="2" rightpadding="2" horizontalalign="LEFT" verticalalign="TOP" wrap="true" />
+				<column>
+					<heading font="AR PL UMing CN" size="10" style="NORMAL" color="-16777216" rowshading="-1" labeling="FIRST_PAGE" />
+					<footing font="AR PL UMing CN" size="10" style="NORMAL" color="-16777216" rowshading="-1" labeling="NONE" />
+					<blob blob="NONE" zip="false" />
+				</column>
+				<table font="AR PL UMing CN" size="10" style="NORMAL" color="-16777216" userowshading="false" oddrowshading="-1" evenrowshading="-1" showborders="true" spacingbefore="12" spacingafter="12" horizontalalign="LEFT" />
+				<header enable="false" generatedate="false">
+					<data>
+					
+					
+					
+					
+				
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					null																																																																																																																																	</data>
+				</header>
+				<footer enable="false" generatedate="false">
+					<data value="null" />
+				</footer>
+				<pagesetup papersize="LETTER" orientation="1" measurement="in" margintop="1.0" marginbottom="1.0" marginleft="1.0" marginright="1.0" />
+			</pdf>
+	</display>
+	<display id="a4015bc6-0148-1000-8014-0a9fb866e52c" type="" style="plsql-dbms_output" enable="true">
+		<name><![CDATA[any query runstat with session]]></name>
+		<description><![CDATA[]]></description>
+		<tooltip><![CDATA[]]></tooltip>
+		<drillclass><![CDATA[]]></drillclass>
+		<CustomValues>
+		</CustomValues>
+		<query>
+			<sql><![CDATA[/* Author       vijay balebail  Vijay.balebail@oracle.com
+   version      1.0
+   01/08/2104  Vijay Balebail -- Created package
+
+*/
+DECLARE
+time_before BINARY_INTEGER;
+time_after_mem BINARY_INTEGER;
+time_before_nomem BINARY_INTEGER;
+time_after_nomem BINARY_INTEGER;
+query_string varchar2(4000);
+max_number number;
+query_string1 varchar2(4000) := replace(:query_string1,';');
+query_explain varchar2(4000) := 'explain plan for '|| query_string1 ;
+alter_session_parameters varchar2(4000) := :alter_session_stmts ;
+
+
+Procedure execute_immediate ( query1 in varchar2 ) as 
+inx number;
+v_curid    NUMBER;
+v_desctab  DBMS_SQL.DESC_TAB;
+v_colcnt   NUMBER;
+v_name_var  VARCHAR2(10000);
+v_num_var   NUMBER;
+v_date_var  DATE;
+v_row_num    NUMBER;
+p_sql_stmt VARCHAR2(4000);
+BEGIN
+v_curid := DBMS_SQL.OPEN_CURSOR;
+    p_sql_stmt := query1 ;
+    DBMS_SQL.PARSE(v_curid, p_sql_stmt, DBMS_SQL.NATIVE);
+    DBMS_SQL.DESCRIBE_COLUMNS(v_curid, v_colcnt, v_desctab);
+ 
+    -- Define columns:
+           FOR i IN 1 .. v_colcnt LOOP
+            IF v_desctab(i).col_type = 2 THEN
+                DBMS_SQL.DEFINE_COLUMN(v_curid, i, v_num_var);
+                ELSIF v_desctab(i).col_type = 12 THEN
+                DBMS_SQL.DEFINE_COLUMN(v_curid, i, v_date_var);
+                ELSE
+                DBMS_SQL.DEFINE_COLUMN(v_curid, i, v_name_var, 50);
+                END IF;
+            END LOOP; 
+            v_row_num := dbms_sql.execute(v_curid);
+            
+            -- Fetch 10 rows with DBMS_SQL package:
+            WHILE (DBMS_SQL.LAST_ROW_COUNT <= 10 and DBMS_SQL.FETCH_ROWS(v_curid) > 0 ) LOOP
+            --WHILE (DBMS_SQL.FETCH_ROWS(v_curid) > 0 ) LOOP
+                FOR i IN 1 .. v_colcnt LOOP
+                IF (v_desctab(i).col_type = 1) THEN
+                        DBMS_SQL.COLUMN_VALUE(v_curid, i, v_name_var);
+                ELSIF (v_desctab(i).col_type = 2) THEN
+                        DBMS_SQL.COLUMN_VALUE(v_curid, i, v_num_var);
+                ELSIF (v_desctab(i).col_type = 12) THEN
+                        DBMS_SQL.COLUMN_VALUE(v_curid, i, v_date_var);
+                END IF;
+            END LOOP;
+            END LOOP; 
+            DBMS_SQL.CLOSE_CURSOR(v_curid);
+end execute_immediate;
+
+
+BEGIN
+  DBMS_OUTPUT.ENABLE(1000000);
+  dbms_output.put_line('<PRE>');
+
+  begin
+    for i in (select regexp_substr( alter_session_parameters,'[^;]+', 1, level) lines from dual
+    connect by regexp_substr( alter_session_parameters, '[^;]+', 1, level) is not null) LOOP
+    dbms_output.put_line(i.lines);
+    execute immediate i.lines;
+    end loop;
+    exception when others then
+    dbms_output.put_line('Error code ' || SQLCODE || ': ' || SQLERRM);
+  end;
+dbms_output.put_line('query string is :'||query_string1);
+
+
+--query_string:=:query_string1 ;
+-- ensure inmemory option is enabled
+execute immediate 'alter session set inmemory_query =enable ';
+-- initiliaze runstata before first run.
+xt_runstats.init();
+
+-- Get timings before first run 
+time_before := DBMS_UTILITY.GET_TIME; 
+
+-- run the query which will default to inmemory.
+-- execute immediate query_string1 into max_number ;
+    execute_immediate(query_string1);
+
+ -- End inmemory execution 
+ -- get end time
+ time_after_mem := DBMS_UTILITY.GET_TIME ;
+ -- get end time
+ xt_runstats.snap('inmemory');
+ execute immediate  query_explain;
+ FOR rc IN (SELECT PLAN_TABLE_OUTPUT FROM TABLE (dbms_xplan.display()))
+ LOOP
+ 
+  dbms_output.put_line(rc.plan_table_output);
+ END LOOP; 
+ 
+ execute immediate 'alter session set inmemory_query = disable ';
+ time_before_nomem:= DBMS_UTILITY.GET_TIME;
+ 
+   execute_immediate(query_string1);
+ 
+ --execute immediate query_string1 into max_number;
+ 
+ 
+ 
+ time_after_nomem := DBMS_UTILITY.GET_TIME;
+  xt_runstats.snap('buffer'); 
+  execute immediate  query_explain;
+ FOR rc IN (SELECT PLAN_TABLE_OUTPUT FROM TABLE (dbms_xplan.display()))
+ LOOP
+  dbms_output.put_line(rc.plan_table_output);
+ END LOOP;
+ 
+ execute immediate 'alter session set inmemory_query = enable ';
+  dbms_output.put_line('<PRE>');
+DBMS_OUTPUT.PUT ((time_after_mem - time_before)/100);
+dbms_output.put(' in memory, ');
+DBMS_OUTPUT.PUT ((time_after_nomem -time_before_nomem)/100);
+dbms_output.put(' sec on_inmemory ');
+dbms_output.put_line('----');
+dbms_output.put(round((time_after_nomem -time_before_nomem)/replace((time_after_mem - time_before),0,1)));
+dbms_output.put('X times faster');
+dbms_output.new_line;
+ xt_runstats.print();
+ --xt_runstats.print(p_stats_mask=>'read');
+ dbms_output.put_line('</PRE>');
+END;]]></sql>
+			<binds>
+				<bind id="query_string1">
+					<prompt><![CDATA[query_string1]]></prompt>
+					<tooltip><![CDATA[query_string1]]></tooltip>
+					<value><![CDATA[SELECT
+max(lo_ordtotalprice) most_expensive_order,
+sum(lo_quantity) total_items
+FROM lineorder;]]></value>
+					<bracket><![CDATA[null]]></bracket>
+				</bind>
+				<bind id="alter_session_stmts">
+					<prompt><![CDATA[alter_session_stmts]]></prompt>
+					<tooltip><![CDATA[alter_session_stmts]]></tooltip>
+					<value><![CDATA[ alter session set nls_date_format = 'DD-MON-YYYY HH24:MI:SS';]]></value>
+					<bracket><![CDATA[null]]></bracket>
+				</bind>
+			</binds>
+		</query>
+			<pdf version="VERSION_1_7" compression="CONTENT">
+				<docproperty title="null" author="null" subject="null" keywords="null" />
+				<cell toppadding="2" bottompadding="2" leftpadding="2" rightpadding="2" horizontalalign="LEFT" verticalalign="TOP" wrap="true" />
+				<column>
+					<heading font="null" size="10" style="NORMAL" color="-16777216" rowshading="-1" labeling="FIRST_PAGE" />
+					<footing font="null" size="10" style="NORMAL" color="-16777216" rowshading="-1" labeling="NONE" />
+					<blob blob="NONE" zip="false" />
+				</column>
+				<table font="null" size="10" style="NORMAL" color="-16777216" userowshading="false" oddrowshading="-1" evenrowshading="-1" showborders="true" spacingbefore="12" spacingafter="12" horizontalalign="LEFT" />
+				<header enable="false" generatedate="false">
+					<data>
+					
+					
+					
+					
+				
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					null																																																																															</data>
+				</header>
+				<footer enable="false" generatedate="false">
+					<data value="null" />
+				</footer>
+				<pagesetup papersize="LETTER" orientation="1" measurement="in" margintop="1.0" marginbottom="1.0" marginleft="1.0" marginright="1.0" />
+			</pdf>
+	</display>
+	<display id="a4019eee-0148-1000-8015-0a9fb866e52c" type="" style="Chart" enable="true">
+		<name><![CDATA[DB Memory pools]]></name>
+		<description><![CDATA[]]></description>
+		<tooltip><![CDATA[]]></tooltip>
+		<drillclass><![CDATA[]]></drillclass>
+		<CustomValues>
+			<LEGEND><![CDATA[true]]></LEGEND>
+			<THREED><![CDATA[true]]></THREED>
+			<GRID><![CDATA[true]]></GRID>
+			<STYLE><![CDATA[Default]]></STYLE>
+			<TYPE><![CDATA[BAR_VERT_STACK]]></TYPE>
+			<GRADIENT><![CDATA[true]]></GRADIENT>
+		</CustomValues>
+		<query>
+			<sql><![CDATA[select * from  
+(select 'memory pools' pools,component,round(current_size/1024/1024) size_mb
+from v$memory_dynamic_components
+where current_size > 0
+and component not like '%Target'
+union all
+select 'memory Targets' pools,component,round(current_size/1024/1024) size_mb
+from v$memory_dynamic_components
+where current_size > 0
+and component like '%Target')
+order by size_mb desc]]></sql>
+		</query>
+			<pdf version="VERSION_1_7" compression="CONTENT">
+				<docproperty title="" author="" subject="" keywords="" />
+				<cell toppadding="2" bottompadding="2" leftpadding="2" rightpadding="2" horizontalalign="LEFT" verticalalign="TOP" wrap="true" />
+				<column>
+					<heading font="AR PL UMing CN" size="10" style="NORMAL" color="-16777216" rowshading="-1" labeling="FIRST_PAGE" />
+					<footing font="AR PL UMing CN" size="10" style="NORMAL" color="-16777216" rowshading="-1" labeling="NONE" />
+					<blob blob="NONE" zip="false" />
+				</column>
+				<table font="AR PL UMing CN" size="10" style="NORMAL" color="-16777216" userowshading="false" oddrowshading="-1" evenrowshading="-1" showborders="true" spacingbefore="12" spacingafter="12" horizontalalign="LEFT" />
+				<header enable="false" generatedate="false">
+					<data>
+					
+					
+					
+					
+				
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					null																																																																																																																																	</data>
+				</header>
+				<footer enable="false" generatedate="false">
+					<data value="null" />
+				</footer>
+				<pagesetup papersize="LETTER" orientation="1" measurement="in" margintop="1.0" marginbottom="1.0" marginleft="1.0" marginright="1.0" />
+			</pdf>
+		<display id="null" type="" style="Table" enable="true">
+			<name><![CDATA[inmemory pool]]></name>
+			<description><![CDATA[]]></description>
+			<tooltip><![CDATA[]]></tooltip>
+			<drillclass><![CDATA[]]></drillclass>
+			<CustomValues>
+				<TYPE><![CDATA[horizontal]]></TYPE>
+			</CustomValues>
+			<query>
+				<sql><![CDATA[select 
+  pool,round(alloc_bytes/1024/1024) alloc_MB ,round(used_bytes/1024/1024) used_MB , 
+  round((alloc_bytes-used_bytes)/1024/1024) free_MB,
+  round(ratio_to_report(alloc_bytes) over ()*100) "% alloc"
+from  
+ v$inmemory_area]]></sql>
+			</query>
+				<pdf version="VERSION_1_7" compression="CONTENT">
+					<docproperty title="null" author="null" subject="null" keywords="null" />
+					<cell toppadding="2" bottompadding="2" leftpadding="2" rightpadding="2" horizontalalign="LEFT" verticalalign="TOP" wrap="true" />
+					<column>
+						<heading font="null" size="10" style="NORMAL" color="-16777216" rowshading="-1" labeling="FIRST_PAGE" />
+						<footing font="null" size="10" style="NORMAL" color="-16777216" rowshading="-1" labeling="NONE" />
+						<blob blob="NONE" zip="false" />
+					</column>
+					<table font="null" size="10" style="NORMAL" color="-16777216" userowshading="false" oddrowshading="-1" evenrowshading="-1" showborders="true" spacingbefore="12" spacingafter="12" horizontalalign="LEFT" />
+					<header enable="false" generatedate="false">
+						<data>
+						
+						
+						
+						
+					
+						
+						
+						
+						
+						
+						
+						
+						
+						
+						null																																																																																									</data>
+					</header>
+					<footer enable="false" generatedate="false">
+						<data value="null" />
+					</footer>
+					<pagesetup papersize="LETTER" orientation="1" measurement="in" margintop="1.0" marginbottom="1.0" marginleft="1.0" marginright="1.0" />
+				</pdf>
+		</display>
+		<display id="null" type="" style="Chart" enable="true">
+			<name><![CDATA[Data distribution]]></name>
+			<description><![CDATA[]]></description>
+			<tooltip><![CDATA[]]></tooltip>
+			<drillclass><![CDATA[]]></drillclass>
+			<CustomValues>
+				<PLOT_HGRID_WIDTH><![CDATA[THINNER]]></PLOT_HGRID_WIDTH>
+				<Y1AXIS_SCALE_INCREMENT><![CDATA[20.0]]></Y1AXIS_SCALE_INCREMENT>
+				<Y2AXIS_SCALE_MAXIMUM><![CDATA[80.0]]></Y2AXIS_SCALE_MAXIMUM>
+				<Y1AXIS_LINE_WIDTH><![CDATA[THINNEST]]></Y1AXIS_LINE_WIDTH>
+				<Y1AXIS_TITLE_ALIGNMENT><![CDATA[CENTER]]></Y1AXIS_TITLE_ALIGNMENT>
+				<LEGEND_LOCATION><![CDATA[AUTOMATIC]]></LEGEND_LOCATION>
+				<LEGEND_ALIGNMENT><![CDATA[LEFT]]></LEGEND_ALIGNMENT>
+				<PLOT_DATALABELS_SLICE_POSITION><![CDATA[OUTSIDE_SLICE_LINE]]></PLOT_DATALABELS_SLICE_POSITION>
+				<XAXIS_LINE_WIDTH><![CDATA[THINNEST]]></XAXIS_LINE_WIDTH>
+				<Y1AXIS_SCALE_MAXIMUM><![CDATA[120.0]]></Y1AXIS_SCALE_MAXIMUM>
+				<XAXIS_TITLE_ALIGNMENT><![CDATA[CENTER]]></XAXIS_TITLE_ALIGNMENT>
+				<XAXIS_TICK_LABEL_ROTATE><![CDATA[HORIZONTAL]]></XAXIS_TICK_LABEL_ROTATE>
+				<Y1AXIS_LOGARITHMIC_BASE><![CDATA[BASE_10]]></Y1AXIS_LOGARITHMIC_BASE>
+				<TYPE><![CDATA[PIE]]></TYPE>
+				<GRID_WIDTH><![CDATA[THINNER]]></GRID_WIDTH>
+				<PLOT_DATALABELS_BAR_POSITION><![CDATA[ABOVE]]></PLOT_DATALABELS_BAR_POSITION>
+				<FOOTNOTE_ALIGNMENT><![CDATA[LEFT]]></FOOTNOTE_ALIGNMENT>
+				<XAXIS_TICK_LABEL_SKIP_MODE><![CDATA[AUTOMATIC]]></XAXIS_TICK_LABEL_SKIP_MODE>
+				<Y2AXIS_LOGARITHMIC_BASE><![CDATA[BASE_10]]></Y2AXIS_LOGARITHMIC_BASE>
+				<STYLE><![CDATA[Default]]></STYLE>
+				<TITLE_ALIGNMENT><![CDATA[LEFT]]></TITLE_ALIGNMENT>
+				<XAXIS_SCALE_INCREMENT><![CDATA[20.0]]></XAXIS_SCALE_INCREMENT>
+				<PLOT_DATALABELS_SLICE_TYPE><![CDATA[PERCENT_VALUE]]></PLOT_DATALABELS_SLICE_TYPE>
+				<Y2AXIS_TICK_LABEL_ROTATE><![CDATA[HORIZONTAL]]></Y2AXIS_TICK_LABEL_ROTATE>
+				<Y2AXIS_SCALE_MINIMUM><![CDATA[10.0]]></Y2AXIS_SCALE_MINIMUM>
+				<Y2AXIS_LINE_WIDTH><![CDATA[THINNEST]]></Y2AXIS_LINE_WIDTH>
+				<Y1AXIS_TICK_LABEL_ROTATE><![CDATA[HORIZONTAL]]></Y1AXIS_TICK_LABEL_ROTATE>
+				<Y2AXIS_SCALE_INCREMENT><![CDATA[20.0]]></Y2AXIS_SCALE_INCREMENT>
+				<PLOT_VGRID_WIDTH><![CDATA[THINNER]]></PLOT_VGRID_WIDTH>
+				<Y2AXIS_TITLE_ALIGNMENT><![CDATA[CENTER]]></Y2AXIS_TITLE_ALIGNMENT>
+				<SUBTITLE_ALIGNMENT><![CDATA[LEFT]]></SUBTITLE_ALIGNMENT>
+			</CustomValues>
+			<query>
+				<sql><![CDATA[select  'In MEMOEY' ,v.segment_name,
+v.inmemory_size   from v$im_segments v
+order by bytes desc]]></sql>
+			</query>
+				<pdf version="VERSION_1_7" compression="CONTENT">
+					<docproperty title="null" author="null" subject="null" keywords="null" />
+					<cell toppadding="2" bottompadding="2" leftpadding="2" rightpadding="2" horizontalalign="LEFT" verticalalign="TOP" wrap="true" />
+					<column>
+						<heading font="null" size="10" style="NORMAL" color="-16777216" rowshading="-1" labeling="FIRST_PAGE" />
+						<footing font="null" size="10" style="NORMAL" color="-16777216" rowshading="-1" labeling="NONE" />
+						<blob blob="NONE" zip="false" />
+					</column>
+					<table font="null" size="10" style="NORMAL" color="-16777216" userowshading="false" oddrowshading="-1" evenrowshading="-1" showborders="true" spacingbefore="12" spacingafter="12" horizontalalign="LEFT" />
+					<header enable="false" generatedate="false">
+						<data>
+						
+						
+						null																		</data>
+					</header>
+					<footer enable="false" generatedate="false">
+						<data value="null" />
+					</footer>
+					<pagesetup papersize="LETTER" orientation="1" measurement="in" margintop="1.0" marginbottom="1.0" marginleft="1.0" marginright="1.0" />
+				</pdf>
+		</display>
+		<display id="null" type="" style="Table" enable="true">
+			<name><![CDATA[im_segments]]></name>
+			<description><![CDATA[]]></description>
+			<tooltip><![CDATA[]]></tooltip>
+			<drillclass><![CDATA[]]></drillclass>
+			<CustomValues>
+				<TYPE><![CDATA[horizontal]]></TYPE>
+			</CustomValues>
+			<query>
+				<sql><![CDATA[select * from v$im_segments]]></sql>
+			</query>
+				<pdf version="VERSION_1_7" compression="CONTENT">
+					<docproperty title="null" author="null" subject="null" keywords="null" />
+					<cell toppadding="2" bottompadding="2" leftpadding="2" rightpadding="2" horizontalalign="LEFT" verticalalign="TOP" wrap="true" />
+					<column>
+						<heading font="null" size="10" style="NORMAL" color="-16777216" rowshading="-1" labeling="FIRST_PAGE" />
+						<footing font="null" size="10" style="NORMAL" color="-16777216" rowshading="-1" labeling="NONE" />
+						<blob blob="NONE" zip="false" />
+					</column>
+					<table font="null" size="10" style="NORMAL" color="-16777216" userowshading="false" oddrowshading="-1" evenrowshading="-1" showborders="true" spacingbefore="12" spacingafter="12" horizontalalign="LEFT" />
+					<header enable="false" generatedate="false">
+						<data>
+						
+						
+						null																		</data>
+					</header>
+					<footer enable="false" generatedate="false">
+						<data value="null" />
+					</footer>
+					<pagesetup papersize="LETTER" orientation="1" measurement="in" margintop="1.0" marginbottom="1.0" marginleft="1.0" marginright="1.0" />
+				</pdf>
+		</display>
+		<display id="null" type="" style="Table" enable="true">
+			<name><![CDATA[Top Sql In-Memory]]></name>
+			<description><![CDATA[]]></description>
+			<tooltip><![CDATA[]]></tooltip>
+			<drillclass><![CDATA[]]></drillclass>
+			<CustomValues>
+				<TYPE><![CDATA[horizontal]]></TYPE>
+			</CustomValues>
+			<query>
+				<sql><![CDATA[SELECT sql_id, plan_hash_value,elapsed_time, cpu_time,avg_elapsed_sec,avg_cpu,sql_text
+FROM (SELECT sql_id,  plan_hash_value||decode(im_scans,0,'_BUFFER','_IM') plan_hash_value, elapsed_time, cpu_time, 
+sql_text,disk_reads,
+ round(elapsed_time/decode(executions,0,1,executions)/1000000,3) avg_elapsed_sec, 
+        round(cpu_time/decode(executions,0,1,executions)/1000000,3) avg_cpu,
+RANK () OVER (partition by sql_id ORDER BY elapsed_time DESC) AS elapsed_rank
+FROM v$sql 
+where sql_id in (select distinct sql_id from v$sql_plan  where options like '%INMEMORY%') )
+ where elapsed_rank <= 40]]></sql>
+			</query>
+				<pdf version="VERSION_1_7" compression="CONTENT">
+					<docproperty title="null" author="null" subject="null" keywords="null" />
+					<cell toppadding="2" bottompadding="2" leftpadding="2" rightpadding="2" horizontalalign="LEFT" verticalalign="TOP" wrap="true" />
+					<column>
+						<heading font="null" size="10" style="NORMAL" color="-16777216" rowshading="-1" labeling="FIRST_PAGE" />
+						<footing font="null" size="10" style="NORMAL" color="-16777216" rowshading="-1" labeling="NONE" />
+						<blob blob="NONE" zip="false" />
+					</column>
+					<table font="null" size="10" style="NORMAL" color="-16777216" userowshading="false" oddrowshading="-1" evenrowshading="-1" showborders="true" spacingbefore="12" spacingafter="12" horizontalalign="LEFT" />
+					<header enable="false" generatedate="false">
+						<data>
+						null						</data>
+					</header>
+					<footer enable="false" generatedate="false">
+						<data value="null" />
+					</footer>
+					<pagesetup papersize="LETTER" orientation="1" measurement="in" margintop="1.0" marginbottom="1.0" marginleft="1.0" marginright="1.0" />
+				</pdf>
+		</display>
+	</display>
+	<display id="a401cf4a-0148-1000-8016-0a9fb866e52c" type="" style="Chart" enable="true">
+		<name><![CDATA[in-memory-objectsgraph]]></name>
+		<description><![CDATA[]]></description>
+		<tooltip><![CDATA[]]></tooltip>
+		<drillclass><![CDATA[]]></drillclass>
+		<CustomValues>
+			<PLOT_HGRID_WIDTH><![CDATA[THINNER]]></PLOT_HGRID_WIDTH>
+			<Y1AXIS_SCALE_INCREMENT><![CDATA[20.0]]></Y1AXIS_SCALE_INCREMENT>
+			<Y2AXIS_SCALE_MAXIMUM><![CDATA[80.0]]></Y2AXIS_SCALE_MAXIMUM>
+			<Y1AXIS_LINE_WIDTH><![CDATA[THINNEST]]></Y1AXIS_LINE_WIDTH>
+			<Y1AXIS_TITLE_ALIGNMENT><![CDATA[CENTER]]></Y1AXIS_TITLE_ALIGNMENT>
+			<LEGEND_LOCATION><![CDATA[AUTOMATIC]]></LEGEND_LOCATION>
+			<LEGEND_ALIGNMENT><![CDATA[LEFT]]></LEGEND_ALIGNMENT>
+			<GRADIENT><![CDATA[true]]></GRADIENT>
+			<PLOT_DATALABELS_SLICE_POSITION><![CDATA[OUTSIDE_SLICE_LINE]]></PLOT_DATALABELS_SLICE_POSITION>
+			<XAXIS_LINE_WIDTH><![CDATA[THINNEST]]></XAXIS_LINE_WIDTH>
+			<LEGEND><![CDATA[true]]></LEGEND>
+			<Y1AXIS_SCALE_MAXIMUM><![CDATA[70.0]]></Y1AXIS_SCALE_MAXIMUM>
+			<XAXIS_TITLE_ALIGNMENT><![CDATA[CENTER]]></XAXIS_TITLE_ALIGNMENT>
+			<XAXIS_TICK_LABEL_ROTATE><![CDATA[HORIZONTAL]]></XAXIS_TICK_LABEL_ROTATE>
+			<Y1AXIS_LOGARITHMIC_BASE><![CDATA[BASE_10]]></Y1AXIS_LOGARITHMIC_BASE>
+			<TYPE><![CDATA[BAR_VERT_CLUST]]></TYPE>
+			<GRID_WIDTH><![CDATA[THINNER]]></GRID_WIDTH>
+			<PLOT_DATALABELS_BAR_POSITION><![CDATA[ABOVE]]></PLOT_DATALABELS_BAR_POSITION>
+			<FOOTNOTE_ALIGNMENT><![CDATA[LEFT]]></FOOTNOTE_ALIGNMENT>
+			<XAXIS_TICK_LABEL_SKIP_MODE><![CDATA[AUTOMATIC]]></XAXIS_TICK_LABEL_SKIP_MODE>
+			<Y2AXIS_LOGARITHMIC_BASE><![CDATA[BASE_10]]></Y2AXIS_LOGARITHMIC_BASE>
+			<GRID><![CDATA[false]]></GRID>
+			<STYLE><![CDATA[Default]]></STYLE>
+			<TITLE_ALIGNMENT><![CDATA[LEFT]]></TITLE_ALIGNMENT>
+			<XAXIS_SCALE_INCREMENT><![CDATA[20.0]]></XAXIS_SCALE_INCREMENT>
+			<PLOT_DATALABELS_SLICE_TYPE><![CDATA[PERCENT_VALUE]]></PLOT_DATALABELS_SLICE_TYPE>
+			<Y2AXIS_TICK_LABEL_ROTATE><![CDATA[HORIZONTAL]]></Y2AXIS_TICK_LABEL_ROTATE>
+			<Y2AXIS_SCALE_MINIMUM><![CDATA[10.0]]></Y2AXIS_SCALE_MINIMUM>
+			<THREED><![CDATA[true]]></THREED>
+			<Y2AXIS_LINE_WIDTH><![CDATA[THINNEST]]></Y2AXIS_LINE_WIDTH>
+			<Y1AXIS_TICK_LABEL_ROTATE><![CDATA[HORIZONTAL]]></Y1AXIS_TICK_LABEL_ROTATE>
+			<Y2AXIS_SCALE_INCREMENT><![CDATA[20.0]]></Y2AXIS_SCALE_INCREMENT>
+			<PLOT_VGRID_WIDTH><![CDATA[THINNER]]></PLOT_VGRID_WIDTH>
+			<Y2AXIS_TITLE_ALIGNMENT><![CDATA[CENTER]]></Y2AXIS_TITLE_ALIGNMENT>
+			<SUBTITLE_ALIGNMENT><![CDATA[LEFT]]></SUBTITLE_ALIGNMENT>
+		</CustomValues>
+		<query>
+			<sql><![CDATA[select * from (select  v.segment_name table_name, 'Original size',
+v.bytes 
+bytes from v$im_segments v 
+union all
+select  v.segment_name, 'in-memory size',
+v.inmemory_size  inmemory from v$im_segments v)
+order by bytes desc]]></sql>
+		</query>
+			<pdf version="VERSION_1_7" compression="CONTENT">
+				<docproperty title="" author="" subject="" keywords="" />
+				<cell toppadding="2" bottompadding="2" leftpadding="2" rightpadding="2" horizontalalign="LEFT" verticalalign="TOP" wrap="true" />
+				<column>
+					<heading font="AR PL UMing CN" size="10" style="NORMAL" color="-16743424" rowshading="-1" labeling="FIRST_PAGE" />
+					<footing font="AR PL UMing CN" size="10" style="NORMAL" color="-16777216" rowshading="-1" labeling="NONE" />
+					<blob blob="NONE" zip="false" />
+				</column>
+				<table font="AR PL UMing CN" size="10" style="NORMAL" color="-16777216" userowshading="false" oddrowshading="-1" evenrowshading="-1" showborders="true" spacingbefore="12" spacingafter="12" horizontalalign="LEFT" />
+				<header enable="false" generatedate="false">
+					<data>
+					
+					
+					
+					
+				
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					null																																																																																																																																																																									</data>
+				</header>
+				<footer enable="false" generatedate="false">
+					<data value="null" />
+				</footer>
+				<pagesetup papersize="LETTER" orientation="1" measurement="in" margintop="1.0" marginbottom="1.0" marginleft="1.0" marginright="1.0" />
+			</pdf>
+	</display>
+	<display id="a402e548-0148-1000-8017-0a9fb866e52c" type="" style="plsql-dbms_output" enable="true">
+		<name><![CDATA[In-Memory Query vs in Buffer Cache]]></name>
+		<description><![CDATA[]]></description>
+		<tooltip><![CDATA[]]></tooltip>
+		<drillclass><![CDATA[]]></drillclass>
+		<CustomValues>
+		</CustomValues>
+		<query>
+			<sql><![CDATA[/* Author       vijay balebail  Vijay.balebail@oracle.com
+   version      1.0
+   01/08/2104  Vijay Balebail -- Created package
+
+*/
+DECLARE
+time_before BINARY_INTEGER;
+time_after_mem BINARY_INTEGER;
+time_before_nomem BINARY_INTEGER;
+time_after_nomem BINARY_INTEGER;
+query_string varchar2(4000);
+max_number number;
+query_string1 varchar2(4000) := replace(:query_string1,';');
+query_explain varchar2(4000) := 'explain plan for '|| query_string1 ;
+--alter_session_parameters varchar2(4000) := :alter_session_stmts ;
+
+
+Procedure execute_immediate ( query1 in varchar2 ) as 
+inx number;
+v_curid    NUMBER;
+v_desctab  DBMS_SQL.DESC_TAB;
+v_colcnt   NUMBER;
+v_name_var  VARCHAR2(10000);
+v_num_var   NUMBER;
+v_date_var  DATE;
+v_row_num    NUMBER;
+p_sql_stmt VARCHAR2(4000);
+BEGIN
+v_curid := DBMS_SQL.OPEN_CURSOR;
+    p_sql_stmt := query1 ;
+    DBMS_SQL.PARSE(v_curid, p_sql_stmt, DBMS_SQL.NATIVE);
+    DBMS_SQL.DESCRIBE_COLUMNS(v_curid, v_colcnt, v_desctab);
+ 
+    -- Define columns:
+           FOR i IN 1 .. v_colcnt LOOP
+            IF v_desctab(i).col_type = 2 THEN
+                DBMS_SQL.DEFINE_COLUMN(v_curid, i, v_num_var);
+                ELSIF v_desctab(i).col_type = 12 THEN
+                DBMS_SQL.DEFINE_COLUMN(v_curid, i, v_date_var);
+                ELSE
+                DBMS_SQL.DEFINE_COLUMN(v_curid, i, v_name_var, 50);
+                END IF;
+            END LOOP; 
+            v_row_num := dbms_sql.execute(v_curid);
+            
+            -- Fetch 10 rows with DBMS_SQL package:
+            WHILE (DBMS_SQL.LAST_ROW_COUNT <= 10 and DBMS_SQL.FETCH_ROWS(v_curid) > 0 ) LOOP
+            --WHILE (DBMS_SQL.FETCH_ROWS(v_curid) > 0 ) LOOP
+                FOR i IN 1 .. v_colcnt LOOP
+                IF (v_desctab(i).col_type = 1) THEN
+                        DBMS_SQL.COLUMN_VALUE(v_curid, i, v_name_var);
+                ELSIF (v_desctab(i).col_type = 2) THEN
+                        DBMS_SQL.COLUMN_VALUE(v_curid, i, v_num_var);
+                ELSIF (v_desctab(i).col_type = 12) THEN
+                        DBMS_SQL.COLUMN_VALUE(v_curid, i, v_date_var);
+                END IF;
+            END LOOP;
+            END LOOP; 
+            DBMS_SQL.CLOSE_CURSOR(v_curid);
+end execute_immediate;
+
+
+BEGIN
+  DBMS_OUTPUT.ENABLE(1000000);
+  dbms_output.put_line('<PRE>');
+
+  /*begin
+    for i in (select regexp_substr( alter_session_parameters,'[^;]+', 1, level) lines from dual
+    connect by regexp_substr( alter_session_parameters, '[^;]+', 1, level) is not null) LOOP
+    dbms_output.put_line(i.lines);
+    execute immediate i.lines;
+    end loop;
+    exception when others then
+    dbms_output.put_line('Error code ' || SQLCODE || ': ' || SQLERRM);
+  end; */
+dbms_output.put_line('query string is : '||chr(13)||chr(10) ||query_string1);
+
+
+--query_string:=:query_string1 ;
+-- ensure inmemory option is enabled
+execute immediate 'alter session set inmemory_query =enable ';
+-- initiliaze runstata before first run.
+xt_runstats.init();
+
+-- Get timings before first run 
+time_before := DBMS_UTILITY.GET_TIME; 
+
+-- run the query which will default to inmemory.
+-- execute immediate query_string1 into max_number ;
+    execute_immediate(query_string1);
+
+ -- End inmemory execution 
+ -- get end time
+ time_after_mem := DBMS_UTILITY.GET_TIME ;
+ -- get end time
+ xt_runstats.snap('inmemory');
+ execute immediate  query_explain;
+
+dbms_output.new_line;
+dbms_output.put('IN MEMORY PLAN');
+dbms_output.new_line;
+
+ FOR rc IN (SELECT PLAN_TABLE_OUTPUT FROM TABLE (dbms_xplan.display()))
+ LOOP
+ 
+  dbms_output.put_line(rc.plan_table_output);
+ END LOOP; 
+ 
+ execute immediate 'alter session set inmemory_query = disable ';
+ time_before_nomem:= DBMS_UTILITY.GET_TIME;
+ 
+   execute_immediate(query_string1);
+ 
+ --execute immediate query_string1 into max_number;
+ 
+ 
+ 
+ time_after_nomem := DBMS_UTILITY.GET_TIME;
+  xt_runstats.snap('buffer'); 
+  execute immediate  query_explain;
+dbms_output.new_line;
+dbms_output.put('BUFFER CACHE PLAN');
+dbms_output.new_line;
+ FOR rc IN (SELECT PLAN_TABLE_OUTPUT FROM TABLE (dbms_xplan.display()))
+ LOOP
+  dbms_output.put_line(rc.plan_table_output);
+ END LOOP;
+ 
+ execute immediate 'alter session set inmemory_query = enable ';
+  dbms_output.put_line('<PRE>');
+DBMS_OUTPUT.PUT ((time_after_mem - time_before)/100);
+dbms_output.put(' sec in memory, ');
+DBMS_OUTPUT.PUT ((time_after_nomem -time_before_nomem)/100);
+dbms_output.put(' sec in SGA ');
+dbms_output.put_line('----');
+dbms_output.put(round((time_after_nomem -time_before_nomem)/replace((time_after_mem - time_before),0,1)));
+dbms_output.put(' X times faster');
+dbms_output.new_line;
+dbms_output.new_line;
+dbms_output.new_line;
+ xt_runstats.print();
+ --xt_runstats.print(p_stats_mask=>'read');
+ dbms_output.put_line('</PRE>');
+END;]]></sql>
+			<binds>
+				<bind id="query_string1">
+					<prompt><![CDATA[query_string1]]></prompt>
+					<tooltip><![CDATA[query_string1]]></tooltip>
+					<value><![CDATA[SELECT d.d_year, p.p_brand1,SUM(lo_revenue) rev 
+FROM   lineorder l, 
+    date_dim d, 
+    part p, 
+    supplier s 
+WHERE  l.lo_orderdate = d.d_datekey 
+AND    l.lo_partkey = p.p_partkey 
+AND    l.lo_suppkey = s.s_suppkey 
+AND    p.p_category = 'MFGR#12' 
+AND    s.s_region   = 'AMERICA'
+AND    d.d_year     = 1997 
+GROUP  BY d.d_year,p.p_brand1; 
+]]></value>
+					<bracket><![CDATA[null]]></bracket>
+				</bind>
+			</binds>
+		</query>
+			<pdf version="VERSION_1_7" compression="CONTENT">
+				<docproperty title="null" author="null" subject="null" keywords="null" />
+				<cell toppadding="2" bottompadding="2" leftpadding="2" rightpadding="2" horizontalalign="LEFT" verticalalign="TOP" wrap="true" />
+				<column>
+					<heading font="null" size="10" style="NORMAL" color="-16777216" rowshading="-1" labeling="FIRST_PAGE" />
+					<footing font="null" size="10" style="NORMAL" color="-16777216" rowshading="-1" labeling="NONE" />
+					<blob blob="NONE" zip="false" />
+				</column>
+				<table font="null" size="10" style="NORMAL" color="-16777216" userowshading="false" oddrowshading="-1" evenrowshading="-1" showborders="true" spacingbefore="12" spacingafter="12" horizontalalign="LEFT" />
+				<header enable="false" generatedate="false">
+					<data>
+					
+					
+					
+					
+				
+					
+					
+					
+					
+					
+					
+					null																																																											</data>
+				</header>
+				<footer enable="false" generatedate="false">
+					<data value="null" />
+				</footer>
+				<pagesetup papersize="LETTER" orientation="1" measurement="in" margintop="1.0" marginbottom="1.0" marginleft="1.0" marginright="1.0" />
+			</pdf>
+	</display>
+	<display id="a40329f8-0148-1000-8018-0a9fb866e52c" type="" style="Table" enable="true">
+		<name><![CDATA[Load all inmemory tables]]></name>
+		<description><![CDATA[]]></description>
+		<tooltip><![CDATA[Its loads all partitions and all tables with inmemory settings.]]></tooltip>
+		<drillclass><![CDATA[]]></drillclass>
+		<CustomValues>
+			<TYPE><![CDATA[horizontal]]></TYPE>
+		</CustomValues>
+		<query>
+			<sql><![CDATA[select
+      table_name,
+      to_number(
+        extractvalue(
+          xmltype(dbms_xmlgen.getxml('select /*+ full(a) parallel(a,8) */ count(*) c from '||table_name||' a' ))
+          ,'/ROWSET/ROW/C')
+          )
+          count from (select  a.table_name from dba_tables a where 
+  a.inmemory_distribute is not null
+   union all
+   select distinct a.table_name from dba_tables a where 
+   partitioned = 'YES' and (owner,table_name) in ( select distinct table_owner,table_name from dba_tab_partitions where inmemory_distribute is not null))]]></sql>
+		</query>
+			<pdf version="VERSION_1_7" compression="CONTENT">
+				<docproperty title="" author="" subject="" keywords="" />
+				<cell toppadding="2" bottompadding="2" leftpadding="2" rightpadding="2" horizontalalign="LEFT" verticalalign="TOP" wrap="true" />
+				<column>
+					<heading font="AR PL UMing CN" size="10" style="NORMAL" color="-16777216" rowshading="-1" labeling="FIRST_PAGE" />
+					<footing font="AR PL UMing CN" size="10" style="NORMAL" color="-16777216" rowshading="-1" labeling="NONE" />
+					<blob blob="NONE" zip="false" />
+				</column>
+				<table font="AR PL UMing CN" size="10" style="NORMAL" color="-16777216" userowshading="false" oddrowshading="-1" evenrowshading="-1" showborders="true" spacingbefore="12" spacingafter="12" horizontalalign="LEFT" />
+				<header enable="false" generatedate="false">
+					<data>
+					
+					
+					
+					
+				
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					null																																																																																																																																	</data>
+				</header>
+				<footer enable="false" generatedate="false">
+					<data value="null" />
+				</footer>
+				<pagesetup papersize="LETTER" orientation="1" measurement="in" margintop="1.0" marginbottom="1.0" marginleft="1.0" marginright="1.0" />
+			</pdf>
+	</display>
+	<display id="a40369bb-0148-1000-8019-0a9fb866e52c" type="" style="plsql-dbms_output" enable="true">
+		<name><![CDATA[Inmemory compression ratio estimator]]></name>
+		<description><![CDATA[]]></description>
+		<tooltip><![CDATA[]]></tooltip>
+		<drillclass><![CDATA[]]></drillclass>
+		<CustomValues>
+		</CustomValues>
+		<query>
+			<sql><![CDATA[declare
+ v_blkcnt_cmp     pls_integer;
+ v_blkcnt_uncmp   pls_integer;
+ v_row_cmp        pls_integer;
+ v_row_uncmp      pls_integer;
+ v_cmp_ratio      number;
+ v_comptype_str   varchar2(60);
+ v_ownname varchar2(60) := upper(:USERNAME);
+ v_OBJNAME varchar2(60) := upper(:TABLE_NAME);
+begin
+ execute immediate 'alter system set "_inmemory_populate_wait"=true';
+ dbms_compression.get_compression_ratio(
+ scratchtbsname   => upper('USERS'),      
+ ownname          => v_ownname,           
+ OBJNAME          => v_OBJNAME,   
+ SUBOBJNAME         => NULL,           
+ comptype         => 4,    
+ blkcnt_cmp       => v_blkcnt_cmp,    
+ blkcnt_uncmp     => v_blkcnt_uncmp,  
+ row_cmp          => v_row_cmp,    
+ row_uncmp        => v_row_uncmp,  
+ cmp_ratio        => v_cmp_ratio,  
+ comptype_str     => v_comptype_str);
+ -- dbms_output.put_line('<PRE>');
+ dbms_output.put_line(upper(v_ownname)||'.'||v_OBJNAME);
+  dbms_output.put_line('Compression Type:         ' || v_comptype_str);
+ dbms_output.put_line('Estimated Compression Ratio: '||to_char(v_cmp_ratio));
+ dbms_output.put_line('Blocks used by compressed sample: '||to_char(v_blkcnt_cmp));
+ dbms_output.put_line('Blocks used by uncompressed sample: '||to_char(v_blkcnt_uncmp));
+ 
+  dbms_compression.get_compression_ratio(
+ scratchtbsname   => upper('USERS'),      
+ ownname          => v_ownname,           
+ OBJNAME          => v_OBJNAME,   
+ SUBOBJNAME         => NULL,           
+ comptype         => 8,    
+ blkcnt_cmp       => v_blkcnt_cmp,    
+ blkcnt_uncmp     => v_blkcnt_uncmp,  
+ row_cmp          => v_row_cmp,    
+ row_uncmp        => v_row_uncmp,  
+ cmp_ratio        => v_cmp_ratio,  
+ comptype_str     => v_comptype_str);
+ 
+ dbms_output.put_line('----------------');
+ dbms_output.put_line(upper(v_ownname)||'.'||v_OBJNAME);
+ dbms_output.put_line('Compression Type:         ' || v_comptype_str);
+ dbms_output.put_line('Estimated Compression Ratio: '||to_char(v_cmp_ratio));
+ dbms_output.put_line('Blocks used by compressed sample: '||to_char(v_blkcnt_cmp));
+ dbms_output.put_line('Blocks used by uncompressed sample: '||to_char(v_blkcnt_uncmp));
+ 
+end;]]></sql>
+			<binds>
+				<bind id="USERNAME">
+					<prompt><![CDATA[USERNAME]]></prompt>
+					<tooltip><![CDATA[USERNAME]]></tooltip>
+					<value><![CDATA[SSB]]></value>
+					<bracket><![CDATA[null]]></bracket>
+				</bind>
+				<bind id="TABLE_NAME">
+					<prompt><![CDATA[TABLE_NAME]]></prompt>
+					<tooltip><![CDATA[TABLE_NAME]]></tooltip>
+					<value><![CDATA[LINEORDER]]></value>
+					<bracket><![CDATA[null]]></bracket>
+				</bind>
+			</binds>
+		</query>
+			<pdf version="VERSION_1_7" compression="CONTENT">
+				<docproperty title="" author="" subject="" keywords="" />
+				<cell toppadding="2" bottompadding="2" leftpadding="2" rightpadding="2" horizontalalign="LEFT" verticalalign="TOP" wrap="true" />
+				<column>
+					<heading font="AR PL UMing CN" size="10" style="NORMAL" color="-16777216" rowshading="-1" labeling="FIRST_PAGE" />
+					<footing font="AR PL UMing CN" size="10" style="NORMAL" color="-16777216" rowshading="-1" labeling="NONE" />
+					<blob blob="NONE" zip="false" />
+				</column>
+				<table font="AR PL UMing CN" size="10" style="NORMAL" color="-16777216" userowshading="false" oddrowshading="-1" evenrowshading="-1" showborders="true" spacingbefore="12" spacingafter="12" horizontalalign="LEFT" />
+				<header enable="false" generatedate="false">
+					<data>
+					
+					
+					
+					
+				
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					null																																																																																																																																																					</data>
+				</header>
+				<footer enable="false" generatedate="false">
+					<data value="null" />
+				</footer>
+				<pagesetup papersize="LETTER" orientation="1" measurement="in" margintop="1.0" marginbottom="1.0" marginleft="1.0" marginright="1.0" />
+			</pdf>
+	</display>
+	<display id="4305d0aa-0175-1000-800c-c0a83801f77e" type="" style="Chart" enable="true">
+		<name><![CDATA[Top Sqls In-Memory/Buffer POC]]></name>
+		<description><![CDATA[ SELECT sql_id ,plan_hash_value ,  avg_elapsed_sec
+FROM (SELECT sql_id,  plan_hash_value||decode(im_scans,0,'_BUFFER','_IM') plan_hash_value, elapsed_time, cpu_time, sql_text
+disk_reads,
+ round(elapsed_time/decode(executions,0,1,executions)/1000000,3) avg_elapsed_sec, 
+        round(cpu_time/decode(executions,0,1,executions)/1000000,3) avg_cpu,
+RANK () OVER (partition by sql_id ORDER BY elapsed_time DESC) AS elapsed_rank
+FROM v$sql 
+where sql_id in (select distinct sql_id from v$sql_plan  where options like '%INMEMORY%') )
+ where elapsed_rank <= 40;]]></description>
+		<tooltip><![CDATA[]]></tooltip>
+		<drillclass><![CDATA[]]></drillclass>
+		<CustomValues>
+			<THREED><![CDATA[true]]></THREED>
+			<GRID><![CDATA[false]]></GRID>
+			<STYLE><![CDATA[Earth]]></STYLE>
+			<TYPE><![CDATA[BAR_VERT_CLUST]]></TYPE>
+			<GRADIENT><![CDATA[true]]></GRADIENT>
+			<GRID_WIDTH><![CDATA[THINNER]]></GRID_WIDTH>
+		</CustomValues>
+		<query>
+			<sql><![CDATA[SELECT sql_id ,plan_hash_value ,  avg_elapsed_sec
+FROM (SELECT sql_id,  plan_hash_value||decode(im_scans,0,'_BUFFER','_IM') plan_hash_value, elapsed_time, cpu_time, sql_text
+disk_reads,
+ round(elapsed_time/decode(executions,0,1,executions)/1000000,3) avg_elapsed_sec, 
+        round(cpu_time/decode(executions,0,1,executions)/1000000,3) avg_cpu,
+RANK () OVER (partition by sql_id ORDER BY elapsed_time DESC) AS elapsed_rank
+FROM v$sql 
+where sql_id in (select distinct sql_id from v$sql_plan  where options like '%INMEMORY%') )
+ where elapsed_rank <= 40]]></sql>
+		</query>
+			<pdf version="VERSION_1_7" compression="CONTENT">
+				<docproperty title="null" author="null" subject="null" keywords="null" />
+				<cell toppadding="2" bottompadding="2" leftpadding="2" rightpadding="2" horizontalalign="LEFT" verticalalign="TOP" wrap="true" />
+				<column>
+					<heading font="null" size="10" style="NORMAL" color="-16777216" rowshading="-1" labeling="FIRST_PAGE" />
+					<footing font="null" size="10" style="NORMAL" color="-16777216" rowshading="-1" labeling="NONE" />
+					<blob blob="NONE" zip="false" />
+				</column>
+				<table font="null" size="10" style="NORMAL" color="-16777216" userowshading="false" oddrowshading="-1" evenrowshading="-1" showborders="true" spacingbefore="12" spacingafter="12" horizontalalign="LEFT" />
+				<header enable="false" generatedate="false">
+					<data>
+					null					</data>
+				</header>
+				<footer enable="false" generatedate="false">
+					<data value="null" />
+				</footer>
+				<pagesetup papersize="LETTER" orientation="1" measurement="in" margintop="1.0" marginbottom="1.0" marginleft="1.0" marginright="1.0" />
+			</pdf>
+		<display id="null" type="" style="plsql-dbms_output" enable="true">
+			<name><![CDATA[Sql text and plan]]></name>
+			<description><![CDATA[]]></description>
+			<tooltip><![CDATA[]]></tooltip>
+			<drillclass><![CDATA[]]></drillclass>
+			<CustomValues>
+			</CustomValues>
+			<query>
+				<sql><![CDATA[Declare
+query_sql_id varchar2(4000) ;
+sql_text varchar2(4000);
+begin
+query_sql_id:= :SQL_ID;
+begin
+ select sql_text into sql_text from v$sql where sql_id = query_sql_id and rownum =1;
+exception when others then
+null;
+end;
+dbms_output.put_line('<PRE>');
+dbms_output.put_line('QUERY TEXT'); 
+dbms_output.put_line(sql_text);
+
+dbms_output.new_line;
+dbms_output.put('SQL PLAN');
+dbms_output.new_line;
+ --FOR rc IN (SELECT PLAN_TABLE_OUTPUT FROM TABLE (DBMS_XPLAN.DISPLAY_CURSOR(query_sql_id)))
+  for rc in (select t.* from v$sql s, table(DBMS_XPLAN.DISPLAY_CURSOR(s.sql_id, s.child_number)) t WHERE sql_id=query_sql_id)
+ LOOP
+  dbms_output.put_line(rc.plan_table_output);
+ END LOOP;
+ dbms_output.put_line('</PRE>');
+end;]]></sql>
+				<binds>
+					<bind id="SQL_ID">
+						<prompt><![CDATA[SQL_ID]]></prompt>
+						<tooltip><![CDATA[SQL_ID]]></tooltip>
+						<value><![CDATA[NULL_VALUE]]></value>
+						<bracket><![CDATA[null]]></bracket>
+					</bind>
+				</binds>
+			</query>
+				<pdf version="VERSION_1_7" compression="CONTENT">
+					<docproperty title="null" author="null" subject="null" keywords="null" />
+					<cell toppadding="2" bottompadding="2" leftpadding="2" rightpadding="2" horizontalalign="LEFT" verticalalign="TOP" wrap="true" />
+					<column>
+						<heading font="null" size="10" style="NORMAL" color="-16777216" rowshading="-1" labeling="FIRST_PAGE" />
+						<footing font="null" size="10" style="NORMAL" color="-16777216" rowshading="-1" labeling="NONE" />
+						<blob blob="NONE" zip="false" />
+					</column>
+					<table font="null" size="10" style="NORMAL" color="-16777216" userowshading="false" oddrowshading="-1" evenrowshading="-1" showborders="true" spacingbefore="12" spacingafter="12" horizontalalign="LEFT" />
+					<header enable="false" generatedate="false">
+						<data>
+						null						</data>
+					</header>
+					<footer enable="false" generatedate="false">
+						<data value="null" />
+					</footer>
+					<pagesetup papersize="LETTER" orientation="1" measurement="in" margintop="1.0" marginbottom="1.0" marginleft="1.0" marginright="1.0" />
+				</pdf>
+		</display>
+	</display>
+</folder>
+</displays>
