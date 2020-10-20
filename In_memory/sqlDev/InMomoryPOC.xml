@@ -13,7 +13,7 @@
 		</CustomValues>
 		<query>
 			<sql><![CDATA[declare
- string1 varchar2(32) ;
+ string1 varchar2 (32) ;
  string2 varchar2(8000);
  i_cur sys_refcursor;
  cnt number;
