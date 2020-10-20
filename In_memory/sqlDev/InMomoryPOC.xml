@@ -103,13 +103,13 @@ as
       select l.latch#,l.name, l.gets value
       from v$latch l
       order by l.latch#;
-   --fix vijay balebail 09/09/2020  
+   --fix vijay balebail 09/09/2020
    -- Create type x1 as table of number;
    --GRANT EXECUTE ON x1 TO PUBLIC;
    -- CREATE OR REPLACE PUBLIC SYNONYM x1 FOR sys.x1;
       g_starts2 objnumset;
      g_starts  objnumset;
-  -- g_starts     sys.ku$_objnumset; 
+  -- g_starts     sys.ku$_objnumset;
    type t_stats   is table of c_stats%rowtype   index by binary_integer;
    type t_latches is table of c_latches%rowtype index by binary_integer;
 
@@ -241,7 +241,7 @@ as
       function delta_pct(p1 number, p2 number) return number
       is
       begin
-        return abs( 
+        return abs(
                    (p2-p1)
                    /case p2 when 0 then 1 else p2 end
                   );
@@ -251,7 +251,7 @@ as
       procedure print_latches is
       begin
          print_header('' Latches '');
-         
+
          hr();
          dbms_output.put_line(''- '');
       end;
@@ -293,14 +293,14 @@ as
       end print_stats;
    /* print: main body */
    begin
-     
+
 
       for i in 1..g_runs_count
       loop
          dbms_output.put_line ( ''Run #''||to_char(i,''909'')||'' ran in '' || round(g_starts(i)/100,2) || ''  seconds'');
-      end loop; 
-     
-     
+      end loop;
+
+
       if g_stats then
          print_stats;
       end if;
@@ -318,7 +318,7 @@ string2:=replace(string2,' ' || chr(10), chr(10));
 EXECUTE IMMEDIATE string2;
    dbms_output.put_line('Package body recompiled in user '||string1);
    dbms_output.put_line('You are ready to run the report');
-   exception when others then 
+   exception when others then
   dbms_output.put_line(sqlerrm);
 end;
   end;]]></sql>
@@ -334,31 +334,31 @@ end;
 				<table font="AR PL UMing CN" size="10" style="NORMAL" color="-16777216" userowshading="false" oddrowshading="-1" evenrowshading="-1" showborders="true" spacingbefore="12" spacingafter="12" horizontalalign="LEFT" />
 				<header enable="false" generatedate="false">
 					<data>
-					
-					
-					
-					
-				
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 					null																																																																																																																																	</data>
 				</header>
 				<footer enable="false" generatedate="false">
@@ -392,7 +392,7 @@ query_explain varchar2(4000) := 'explain plan for '|| query_string1 ;
 alter_session_parameters varchar2(4000) := :alter_session_stmts ;
 
 
-Procedure execute_immediate ( query1 in varchar2 ) as 
+Procedure execute_immediate ( query1 in varchar2 ) as
 inx number;
 v_curid    NUMBER;
 v_desctab  DBMS_SQL.DESC_TAB;
@@ -407,7 +407,7 @@ v_curid := DBMS_SQL.OPEN_CURSOR;
     p_sql_stmt := query1 ;
     DBMS_SQL.PARSE(v_curid, p_sql_stmt, DBMS_SQL.NATIVE);
     DBMS_SQL.DESCRIBE_COLUMNS(v_curid, v_colcnt, v_desctab);
- 
+
     -- Define columns:
            FOR i IN 1 .. v_colcnt LOOP
             IF v_desctab(i).col_type = 2 THEN
@@ -417,9 +417,9 @@ v_curid := DBMS_SQL.OPEN_CURSOR;
                 ELSE
                 DBMS_SQL.DEFINE_COLUMN(v_curid, i, v_name_var, 50);
                 END IF;
-            END LOOP; 
+            END LOOP;
             v_row_num := dbms_sql.execute(v_curid);
-            
+
             -- Fetch 10 rows with DBMS_SQL package:
             WHILE (DBMS_SQL.LAST_ROW_COUNT <= 10 and DBMS_SQL.FETCH_ROWS(v_curid) > 0 ) LOOP
             --WHILE (DBMS_SQL.FETCH_ROWS(v_curid) > 0 ) LOOP
@@ -432,7 +432,7 @@ v_curid := DBMS_SQL.OPEN_CURSOR;
                         DBMS_SQL.COLUMN_VALUE(v_curid, i, v_date_var);
                 END IF;
             END LOOP;
-            END LOOP; 
+            END LOOP;
             DBMS_SQL.CLOSE_CURSOR(v_curid);
 end execute_immediate;
 
@@ -459,14 +459,14 @@ execute immediate 'alter session set inmemory_query =enable ';
 -- initiliaze runstata before first run.
 xt_runstats.init();
 
--- Get timings before first run 
-time_before := DBMS_UTILITY.GET_TIME; 
+-- Get timings before first run
+time_before := DBMS_UTILITY.GET_TIME;
 
 -- run the query which will default to inmemory.
 -- execute immediate query_string1 into max_number ;
     execute_immediate(query_string1);
 
- -- End inmemory execution 
+ -- End inmemory execution
  -- get end time
  time_after_mem := DBMS_UTILITY.GET_TIME ;
  -- get end time
@@ -474,27 +474,27 @@ time_before := DBMS_UTILITY.GET_TIME;
  execute immediate  query_explain;
  FOR rc IN (SELECT PLAN_TABLE_OUTPUT FROM TABLE (dbms_xplan.display()))
  LOOP
- 
+
   dbms_output.put_line(rc.plan_table_output);
- END LOOP; 
- 
+ END LOOP;
+
  execute immediate 'alter session set inmemory_query = disable ';
  time_before_nomem:= DBMS_UTILITY.GET_TIME;
- 
+
    execute_immediate(query_string1);
- 
+
  --execute immediate query_string1 into max_number;
- 
- 
- 
+
+
+
  time_after_nomem := DBMS_UTILITY.GET_TIME;
-  xt_runstats.snap('buffer'); 
+  xt_runstats.snap('buffer');
   execute immediate  query_explain;
  FOR rc IN (SELECT PLAN_TABLE_OUTPUT FROM TABLE (dbms_xplan.display()))
  LOOP
   dbms_output.put_line(rc.plan_table_output);
  END LOOP;
- 
+
  execute immediate 'alter session set inmemory_query = enable ';
   dbms_output.put_line('<PRE>');
 DBMS_OUTPUT.PUT ((time_after_mem - time_before)/100);
@@ -538,21 +538,21 @@ FROM lineorder;]]></value>
 				<table font="null" size="10" style="NORMAL" color="-16777216" userowshading="false" oddrowshading="-1" evenrowshading="-1" showborders="true" spacingbefore="12" spacingafter="12" horizontalalign="LEFT" />
 				<header enable="false" generatedate="false">
 					<data>
-					
-					
-					
-					
-				
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 					null																																																																															</data>
 				</header>
 				<footer enable="false" generatedate="false">
@@ -575,7 +575,7 @@ FROM lineorder;]]></value>
 			<GRADIENT><![CDATA[true]]></GRADIENT>
 		</CustomValues>
 		<query>
-			<sql><![CDATA[select * from  
+			<sql><![CDATA[select * from
 (select 'memory pools' pools,component,round(current_size/1024/1024) size_mb
 from v$memory_dynamic_components
 where current_size > 0
@@ -598,31 +598,31 @@ order by size_mb desc]]></sql>
 				<table font="AR PL UMing CN" size="10" style="NORMAL" color="-16777216" userowshading="false" oddrowshading="-1" evenrowshading="-1" showborders="true" spacingbefore="12" spacingafter="12" horizontalalign="LEFT" />
 				<header enable="false" generatedate="false">
 					<data>
-					
-					
-					
-					
-				
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 					null																																																																																																																																	</data>
 				</header>
 				<footer enable="false" generatedate="false">
@@ -639,11 +639,11 @@ order by size_mb desc]]></sql>
 				<TYPE><![CDATA[horizontal]]></TYPE>
 			</CustomValues>
 			<query>
-				<sql><![CDATA[select 
-  pool,round(alloc_bytes/1024/1024) alloc_MB ,round(used_bytes/1024/1024) used_MB , 
+				<sql><![CDATA[select
+  pool,round(alloc_bytes/1024/1024) alloc_MB ,round(used_bytes/1024/1024) used_MB ,
   round((alloc_bytes-used_bytes)/1024/1024) free_MB,
   round(ratio_to_report(alloc_bytes) over ()*100) "% alloc"
-from  
+from
  v$inmemory_area]]></sql>
 			</query>
 				<pdf version="VERSION_1_7" compression="CONTENT">
@@ -657,20 +657,20 @@ from
 					<table font="null" size="10" style="NORMAL" color="-16777216" userowshading="false" oddrowshading="-1" evenrowshading="-1" showborders="true" spacingbefore="12" spacingafter="12" horizontalalign="LEFT" />
 					<header enable="false" generatedate="false">
 						<data>
-						
-						
-						
-						
-					
-						
-						
-						
-						
-						
-						
-						
-						
-						
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 						null																																																																																									</data>
 					</header>
 					<footer enable="false" generatedate="false">
@@ -733,8 +733,8 @@ order by bytes desc]]></sql>
 					<table font="null" size="10" style="NORMAL" color="-16777216" userowshading="false" oddrowshading="-1" evenrowshading="-1" showborders="true" spacingbefore="12" spacingafter="12" horizontalalign="LEFT" />
 					<header enable="false" generatedate="false">
 						<data>
-						
-						
+
+
 						null																		</data>
 					</header>
 					<footer enable="false" generatedate="false">
@@ -765,8 +765,8 @@ order by bytes desc]]></sql>
 					<table font="null" size="10" style="NORMAL" color="-16777216" userowshading="false" oddrowshading="-1" evenrowshading="-1" showborders="true" spacingbefore="12" spacingafter="12" horizontalalign="LEFT" />
 					<header enable="false" generatedate="false">
 						<data>
-						
-						
+
+
 						null																		</data>
 					</header>
 					<footer enable="false" generatedate="false">
@@ -785,12 +785,12 @@ order by bytes desc]]></sql>
 			</CustomValues>
 			<query>
 				<sql><![CDATA[SELECT sql_id, plan_hash_value,elapsed_time, cpu_time,avg_elapsed_sec,avg_cpu,sql_text
-FROM (SELECT sql_id,  plan_hash_value||decode(im_scans,0,'_BUFFER','_IM') plan_hash_value, elapsed_time, cpu_time, 
+FROM (SELECT sql_id,  plan_hash_value||decode(im_scans,0,'_BUFFER','_IM') plan_hash_value, elapsed_time, cpu_time,
 sql_text,disk_reads,
- round(elapsed_time/decode(executions,0,1,executions)/1000000,3) avg_elapsed_sec, 
+ round(elapsed_time/decode(executions,0,1,executions)/1000000,3) avg_elapsed_sec,
         round(cpu_time/decode(executions,0,1,executions)/1000000,3) avg_cpu,
 RANK () OVER (partition by sql_id ORDER BY elapsed_time DESC) AS elapsed_rank
-FROM v$sql 
+FROM v$sql
 where sql_id in (select distinct sql_id from v$sql_plan  where options like '%INMEMORY%') )
  where elapsed_rank <= 40]]></sql>
 			</query>
@@ -858,8 +858,8 @@ where sql_id in (select distinct sql_id from v$sql_plan  where options like '%IN
 		</CustomValues>
 		<query>
 			<sql><![CDATA[select * from (select  v.segment_name table_name, 'Original size',
-v.bytes 
-bytes from v$im_segments v 
+v.bytes
+bytes from v$im_segments v
 union all
 select  v.segment_name, 'in-memory size',
 v.inmemory_size  inmemory from v$im_segments v)
@@ -876,39 +876,39 @@ order by bytes desc]]></sql>
 				<table font="AR PL UMing CN" size="10" style="NORMAL" color="-16777216" userowshading="false" oddrowshading="-1" evenrowshading="-1" showborders="true" spacingbefore="12" spacingafter="12" horizontalalign="LEFT" />
 				<header enable="false" generatedate="false">
 					<data>
-					
-					
-					
-					
-				
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 					null																																																																																																																																																																									</data>
 				</header>
 				<footer enable="false" generatedate="false">
@@ -942,7 +942,7 @@ query_explain varchar2(4000) := 'explain plan for '|| query_string1 ;
 --alter_session_parameters varchar2(4000) := :alter_session_stmts ;
 
 
-Procedure execute_immediate ( query1 in varchar2 ) as 
+Procedure execute_immediate ( query1 in varchar2 ) as
 inx number;
 v_curid    NUMBER;
 v_desctab  DBMS_SQL.DESC_TAB;
@@ -957,7 +957,7 @@ v_curid := DBMS_SQL.OPEN_CURSOR;
     p_sql_stmt := query1 ;
     DBMS_SQL.PARSE(v_curid, p_sql_stmt, DBMS_SQL.NATIVE);
     DBMS_SQL.DESCRIBE_COLUMNS(v_curid, v_colcnt, v_desctab);
- 
+
     -- Define columns:
            FOR i IN 1 .. v_colcnt LOOP
             IF v_desctab(i).col_type = 2 THEN
@@ -967,9 +967,9 @@ v_curid := DBMS_SQL.OPEN_CURSOR;
                 ELSE
                 DBMS_SQL.DEFINE_COLUMN(v_curid, i, v_name_var, 50);
                 END IF;
-            END LOOP; 
+            END LOOP;
             v_row_num := dbms_sql.execute(v_curid);
-            
+
             -- Fetch 10 rows with DBMS_SQL package:
             WHILE (DBMS_SQL.LAST_ROW_COUNT <= 10 and DBMS_SQL.FETCH_ROWS(v_curid) > 0 ) LOOP
             --WHILE (DBMS_SQL.FETCH_ROWS(v_curid) > 0 ) LOOP
@@ -982,7 +982,7 @@ v_curid := DBMS_SQL.OPEN_CURSOR;
                         DBMS_SQL.COLUMN_VALUE(v_curid, i, v_date_var);
                 END IF;
             END LOOP;
-            END LOOP; 
+            END LOOP;
             DBMS_SQL.CLOSE_CURSOR(v_curid);
 end execute_immediate;
 
@@ -1009,14 +1009,14 @@ execute immediate 'alter session set inmemory_query =enable ';
 -- initiliaze runstata before first run.
 xt_runstats.init();
 
--- Get timings before first run 
-time_before := DBMS_UTILITY.GET_TIME; 
+-- Get timings before first run
+time_before := DBMS_UTILITY.GET_TIME;
 
 -- run the query which will default to inmemory.
 -- execute immediate query_string1 into max_number ;
     execute_immediate(query_string1);
 
- -- End inmemory execution 
+ -- End inmemory execution
  -- get end time
  time_after_mem := DBMS_UTILITY.GET_TIME ;
  -- get end time
@@ -1029,21 +1029,21 @@ dbms_output.new_line;
 
  FOR rc IN (SELECT PLAN_TABLE_OUTPUT FROM TABLE (dbms_xplan.display()))
  LOOP
- 
+
   dbms_output.put_line(rc.plan_table_output);
- END LOOP; 
- 
+ END LOOP;
+
  execute immediate 'alter session set inmemory_query = disable ';
  time_before_nomem:= DBMS_UTILITY.GET_TIME;
- 
+
    execute_immediate(query_string1);
- 
+
  --execute immediate query_string1 into max_number;
- 
- 
- 
+
+
+
  time_after_nomem := DBMS_UTILITY.GET_TIME;
-  xt_runstats.snap('buffer'); 
+  xt_runstats.snap('buffer');
   execute immediate  query_explain;
 dbms_output.new_line;
 dbms_output.put('BUFFER CACHE PLAN');
@@ -1052,7 +1052,7 @@ dbms_output.new_line;
  LOOP
   dbms_output.put_line(rc.plan_table_output);
  END LOOP;
- 
+
  execute immediate 'alter session set inmemory_query = enable ';
   dbms_output.put_line('<PRE>');
 DBMS_OUTPUT.PUT ((time_after_mem - time_before)/100);
@@ -1073,18 +1073,18 @@ END;]]></sql>
 				<bind id="query_string1">
 					<prompt><![CDATA[query_string1]]></prompt>
 					<tooltip><![CDATA[query_string1]]></tooltip>
-					<value><![CDATA[SELECT d.d_year, p.p_brand1,SUM(lo_revenue) rev 
-FROM   lineorder l, 
-    date_dim d, 
-    part p, 
-    supplier s 
-WHERE  l.lo_orderdate = d.d_datekey 
-AND    l.lo_partkey = p.p_partkey 
-AND    l.lo_suppkey = s.s_suppkey 
-AND    p.p_category = 'MFGR#12' 
+					<value><![CDATA[SELECT d.d_year, p.p_brand1,SUM(lo_revenue) rev
+FROM   lineorder l,
+    date_dim d,
+    part p,
+    supplier s
+WHERE  l.lo_orderdate = d.d_datekey
+AND    l.lo_partkey = p.p_partkey
+AND    l.lo_suppkey = s.s_suppkey
+AND    p.p_category = 'MFGR#12'
 AND    s.s_region   = 'AMERICA'
-AND    d.d_year     = 1997 
-GROUP  BY d.d_year,p.p_brand1; 
+AND    d.d_year     = 1997
+GROUP  BY d.d_year,p.p_brand1;
 ]]></value>
 					<bracket><![CDATA[null]]></bracket>
 				</bind>
@@ -1101,17 +1101,17 @@ GROUP  BY d.d_year,p.p_brand1;
 				<table font="null" size="10" style="NORMAL" color="-16777216" userowshading="false" oddrowshading="-1" evenrowshading="-1" showborders="true" spacingbefore="12" spacingafter="12" horizontalalign="LEFT" />
 				<header enable="false" generatedate="false">
 					<data>
-					
-					
-					
-					
-				
-					
-					
-					
-					
-					
-					
+
+
+
+
+
+
+
+
+
+
+
 					null																																																											</data>
 				</header>
 				<footer enable="false" generatedate="false">
@@ -1136,10 +1136,10 @@ GROUP  BY d.d_year,p.p_brand1;
           xmltype(dbms_xmlgen.getxml('select /*+ full(a) parallel(a,8) */ count(*) c from '||table_name||' a' ))
           ,'/ROWSET/ROW/C')
           )
-          count from (select  a.table_name from dba_tables a where 
+          count from (select  a.table_name from dba_tables a where
   a.inmemory_distribute is not null
    union all
-   select distinct a.table_name from dba_tables a where 
+   select distinct a.table_name from dba_tables a where
    partitioned = 'YES' and (owner,table_name) in ( select distinct table_owner,table_name from dba_tab_partitions where inmemory_distribute is not null))]]></sql>
 		</query>
 			<pdf version="VERSION_1_7" compression="CONTENT">
@@ -1153,31 +1153,31 @@ GROUP  BY d.d_year,p.p_brand1;
 				<table font="AR PL UMing CN" size="10" style="NORMAL" color="-16777216" userowshading="false" oddrowshading="-1" evenrowshading="-1" showborders="true" spacingbefore="12" spacingafter="12" horizontalalign="LEFT" />
 				<header enable="false" generatedate="false">
 					<data>
-					
-					
-					
-					
-				
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 					null																																																																																																																																	</data>
 				</header>
 				<footer enable="false" generatedate="false">
@@ -1206,16 +1206,16 @@ GROUP  BY d.d_year,p.p_brand1;
 begin
  execute immediate 'alter system set "_inmemory_populate_wait"=true';
  dbms_compression.get_compression_ratio(
- scratchtbsname   => upper('USERS'),      
- ownname          => v_ownname,           
- OBJNAME          => v_OBJNAME,   
- SUBOBJNAME         => NULL,           
- comptype         => 4,    
- blkcnt_cmp       => v_blkcnt_cmp,    
- blkcnt_uncmp     => v_blkcnt_uncmp,  
- row_cmp          => v_row_cmp,    
- row_uncmp        => v_row_uncmp,  
- cmp_ratio        => v_cmp_ratio,  
+ scratchtbsname   => upper('USERS'),
+ ownname          => v_ownname,
+ OBJNAME          => v_OBJNAME,
+ SUBOBJNAME         => NULL,
+ comptype         => 4,
+ blkcnt_cmp       => v_blkcnt_cmp,
+ blkcnt_uncmp     => v_blkcnt_uncmp,
+ row_cmp          => v_row_cmp,
+ row_uncmp        => v_row_uncmp,
+ cmp_ratio        => v_cmp_ratio,
  comptype_str     => v_comptype_str);
  -- dbms_output.put_line('<PRE>');
  dbms_output.put_line(upper(v_ownname)||'.'||v_OBJNAME);
@@ -1223,27 +1223,27 @@ begin
  dbms_output.put_line('Estimated Compression Ratio: '||to_char(v_cmp_ratio));
  dbms_output.put_line('Blocks used by compressed sample: '||to_char(v_blkcnt_cmp));
  dbms_output.put_line('Blocks used by uncompressed sample: '||to_char(v_blkcnt_uncmp));
- 
+
   dbms_compression.get_compression_ratio(
- scratchtbsname   => upper('USERS'),      
- ownname          => v_ownname,           
- OBJNAME          => v_OBJNAME,   
- SUBOBJNAME         => NULL,           
- comptype         => 8,    
- blkcnt_cmp       => v_blkcnt_cmp,    
- blkcnt_uncmp     => v_blkcnt_uncmp,  
- row_cmp          => v_row_cmp,    
- row_uncmp        => v_row_uncmp,  
- cmp_ratio        => v_cmp_ratio,  
+ scratchtbsname   => upper('USERS'),
+ ownname          => v_ownname,
+ OBJNAME          => v_OBJNAME,
+ SUBOBJNAME         => NULL,
+ comptype         => 8,
+ blkcnt_cmp       => v_blkcnt_cmp,
+ blkcnt_uncmp     => v_blkcnt_uncmp,
+ row_cmp          => v_row_cmp,
+ row_uncmp        => v_row_uncmp,
+ cmp_ratio        => v_cmp_ratio,
  comptype_str     => v_comptype_str);
- 
+
  dbms_output.put_line('----------------');
  dbms_output.put_line(upper(v_ownname)||'.'||v_OBJNAME);
  dbms_output.put_line('Compression Type:         ' || v_comptype_str);
  dbms_output.put_line('Estimated Compression Ratio: '||to_char(v_cmp_ratio));
  dbms_output.put_line('Blocks used by compressed sample: '||to_char(v_blkcnt_cmp));
  dbms_output.put_line('Blocks used by uncompressed sample: '||to_char(v_blkcnt_uncmp));
- 
+
 end;]]></sql>
 			<binds>
 				<bind id="USERNAME">
@@ -1271,35 +1271,35 @@ end;]]></sql>
 				<table font="AR PL UMing CN" size="10" style="NORMAL" color="-16777216" userowshading="false" oddrowshading="-1" evenrowshading="-1" showborders="true" spacingbefore="12" spacingafter="12" horizontalalign="LEFT" />
 				<header enable="false" generatedate="false">
 					<data>
-					
-					
-					
-					
-				
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 					null																																																																																																																																																					</data>
 				</header>
 				<footer enable="false" generatedate="false">
@@ -1313,10 +1313,10 @@ end;]]></sql>
 		<description><![CDATA[ SELECT sql_id ,plan_hash_value ,  avg_elapsed_sec
 FROM (SELECT sql_id,  plan_hash_value||decode(im_scans,0,'_BUFFER','_IM') plan_hash_value, elapsed_time, cpu_time, sql_text
 disk_reads,
- round(elapsed_time/decode(executions,0,1,executions)/1000000,3) avg_elapsed_sec, 
+ round(elapsed_time/decode(executions,0,1,executions)/1000000,3) avg_elapsed_sec,
         round(cpu_time/decode(executions,0,1,executions)/1000000,3) avg_cpu,
 RANK () OVER (partition by sql_id ORDER BY elapsed_time DESC) AS elapsed_rank
-FROM v$sql 
+FROM v$sql
 where sql_id in (select distinct sql_id from v$sql_plan  where options like '%INMEMORY%') )
  where elapsed_rank <= 40;]]></description>
 		<tooltip><![CDATA[]]></tooltip>
@@ -1333,10 +1333,10 @@ where sql_id in (select distinct sql_id from v$sql_plan  where options like '%IN
 			<sql><![CDATA[SELECT sql_id ,plan_hash_value ,  avg_elapsed_sec
 FROM (SELECT sql_id,  plan_hash_value||decode(im_scans,0,'_BUFFER','_IM') plan_hash_value, elapsed_time, cpu_time, sql_text
 disk_reads,
- round(elapsed_time/decode(executions,0,1,executions)/1000000,3) avg_elapsed_sec, 
+ round(elapsed_time/decode(executions,0,1,executions)/1000000,3) avg_elapsed_sec,
         round(cpu_time/decode(executions,0,1,executions)/1000000,3) avg_cpu,
 RANK () OVER (partition by sql_id ORDER BY elapsed_time DESC) AS elapsed_rank
-FROM v$sql 
+FROM v$sql
 where sql_id in (select distinct sql_id from v$sql_plan  where options like '%INMEMORY%') )
  where elapsed_rank <= 40]]></sql>
 		</query>
@@ -1377,7 +1377,7 @@ exception when others then
 null;
 end;
 dbms_output.put_line('<PRE>');
-dbms_output.put_line('QUERY TEXT'); 
+dbms_output.put_line('QUERY TEXT');
 dbms_output.put_line(sql_text);
 
 dbms_output.new_line;
