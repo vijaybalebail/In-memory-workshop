@@ -109,11 +109,8 @@ ALTER SESSION SET INMEMORY_QUERY=DIAABLE|ENABLE;
 
     The IM column store only has to scan two columns - lo_ordtotalprice and lo_quantity - while the row store has to scan all of the columns in each of the rows until it reaches the lo_ordtotalprice and lo_quantity columns. The IM column store also benefits from the fact that the data is compressed so the volume of data scanned is much less.  Finally, the column format requires no additional manipulation for SIMD vector processing (Single Instruction processing Multiple Data values). Instead of evaluating each entry in the column one at a time, SIMD vector processing allows a set of column values to be evaluated together in a single CPU instruction.
 
-    In order to confirm that the IM column store was used, we need to examine the session level statistics. Notice that in the INMEMORY run several IM statistics show up (for this lab we have only displayed some key statistics – there are lots more!). The only one we are really interested in now is the "IM scan CUs columns accessed" which has been highlighted.
+    In order to confirm that the IM column store was used, we need to examine the session level statistics. Notice that in the INMEMORY run several IM statistics show up (for this lab we have only displayed some key statistics – there are lots more!). The only one we are really interested in now is the "IM scan CUs columns accessed" which highlights IM optimization to further improve performance.
 
-    IM scan rows: Number of rows in scanned In-Memory Compression Units (IMCUs).
-
-    As our query did a full table scan of the LINEORDER table, that session statistic shows that we scanned 23 million rows from the IM column store. Notice that in our second buffer cache query that statistic does not show up. Only one statistic shows up, "IM scan segments disk" with a value of 1. This means that even though the LINEORDER table is in the IM column store (IM segment) we actually scan that segment outside of the column store either from disk or the buffer cache. In this case it’s from the buffer cache, as the query did no physical IO.
 
 4.  Let's look for a specific order in the LINEORDER table based on the order key.  Typically, a full table scan is not an efficient execution plan when looking for a specific entry in a table.
 
@@ -133,7 +130,7 @@ ALTER SESSION SET INMEMORY_QUERY=DIAABLE|ENABLE;
     </copy>
     ````
 
-    ![](images/num4.png)
+
 
 5.  Think indexing lo_orderkey would provide the same performance as the IM column store? There is an invisible index already created on the lo_orderkey column of the LINEORDER table. By using the parameter OPTIMIZER_USE_INVISIBLE_INDEXES we can compare the performance of the IM column store and the index. Let's see how well the index performs.  
 
@@ -154,10 +151,8 @@ ALTER SESSION SET INMEMORY_QUERY=DIAABLE|ENABLE;
     @../imstats.sql
     </copy>
     ````
+    We observe that , when index is available on the filter column of the query, the optimizer chose INDEX SCAN over INMEMOEY FULL TABLE SCAN.
 
-    ![](images/num5.png)
-
-    ![](images/num5b.png)
 
 6.  Analytical queries have more than one equality WHERE clause predicate. What happens when there are multiple single column predicates on a table? Traditionally you would create a multi-column index. Can storage indexes compete with that?  
 
@@ -189,7 +184,8 @@ ALTER SESSION SET INMEMORY_QUERY=DIAABLE|ENABLE;
     exit
     </copy>
     ````
-    You can see that the In-Memory storage index is still used. In fact, we are able to use multiple storage indexes together in a similar manner to how Oracle Database can combine multiple bitmap indexes.
+    You can see that the In-Memory SCAN  is used. In fact, INMEMORY replaces multiple indexes on the Database.
+    This not only speeds up Query with fewer indexes, but also improve DML and load performance due to fewer indexes.
 
     ![](images/num6.png)   
 
