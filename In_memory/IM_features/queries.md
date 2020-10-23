@@ -82,11 +82,11 @@ Now that you’ve gotten familiar with the IM column store let’s look at the b
 
 3.  To execute the same query against the buffer cache you will need to disable the IM column store via a hint called NO_INMEMORY or at session level and disable INMEMORY_QUERY.
 
-````
-ALTER SESSION SET INMEMORY_QUERY=DIAABLE|ENABLE;
-````
+    ````
+    ALTER SESSION SET INMEMORY_QUERY= DIAABLE|ENABLE;
+    ````
 
- If you don't, the Optimizer will try to access the data in the IM column store when the execution plan is a full table scan.
+  We can run the above query with a hint and note the time and plan.
 
 
     ````
@@ -105,7 +105,7 @@ ALTER SESSION SET INMEMORY_QUERY=DIAABLE|ENABLE;
       @../imstats.sql
     </copy>
     ````
-    As you can see the query executed extremely quickly in both cases because this is purely an in-memory scan. However, the performance of the query against the IM column store was significantly faster than the traditional buffer cache - why?  
+    As you can see the query the performance of the query against the IM column store was significantly faster than the traditional buffer cache - why?  
 
     The IM column store only has to scan two columns - lo_ordtotalprice and lo_quantity - while the row store has to scan all of the columns in each of the rows until it reaches the lo_ordtotalprice and lo_quantity columns. The IM column store also benefits from the fact that the data is compressed so the volume of data scanned is much less.  Finally, the column format requires no additional manipulation for SIMD vector processing (Single Instruction processing Multiple Data values). Instead of evaluating each entry in the column one at a time, SIMD vector processing allows a set of column values to be evaluated together in a single CPU instruction.
 
@@ -151,7 +151,7 @@ ALTER SESSION SET INMEMORY_QUERY=DIAABLE|ENABLE;
     @../imstats.sql
     </copy>
     ````
-    We observe that , when index is available on the filter column of the query, the optimizer chose INDEX SCAN over INMEMOEY FULL TABLE SCAN.
+    We observe that , when index is available on the filter column of the query, the optimizer chose INDEX SCAN over INMEMORY FULL TABLE SCAN.
 
 
 6.  Analytical queries have more than one equality WHERE clause predicate. What happens when there are multiple single column predicates on a table? Traditionally you would create a multi-column index. Can storage indexes compete with that?  
@@ -184,7 +184,7 @@ ALTER SESSION SET INMEMORY_QUERY=DIAABLE|ENABLE;
     exit
     </copy>
     ````
-    You can see that the In-Memory SCAN  is used. In fact, INMEMORY replaces multiple indexes on the Database.
+    You can see that the In-Memory SCAN  is used even when there is a INDEX on lo_orderkey. In fact, INMEMORY replaces multiple indexes on the Database.
     This not only speeds up Query with fewer indexes, but also improve DML and load performance due to fewer indexes.
 
     ![](images/num6.png)   
