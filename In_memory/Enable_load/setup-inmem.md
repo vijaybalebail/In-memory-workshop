@@ -241,7 +241,10 @@ FROM USER_TABLES
 WHERE TABLE_NAME = 'BONUS';
 </copy>
 ````
-## In-Memory FastStart
+## Step 3: Loading partial Tables or columns
+
+
+## Step 4: In-Memory FastStart
 
 n-Memory FastStart was introduced in 12.2 to speed up the re-population of the IM column store when an instance is restarted. IM FastStart works by periodically checkpointing IMCUs to a designated IM FastStart tablespace. This is done automatically by background processes. The motivation for FastStart is to reduce the I/O and CPU intensive work required to convert row based data into columnar data with the associated compression and IM storage indexes that are part of the population process. With IM FastStart the actual columnar formatted data is written out to persistent storage and can be read back faster and with less I/O and CPU than if the data has to be re-populated from the row-store. It is also worth noting that if the IM FastStart tablespace fills up or becomes unavailable the operation of the IM column store is not affected.
 
