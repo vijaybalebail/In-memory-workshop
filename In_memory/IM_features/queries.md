@@ -77,7 +77,7 @@ Now that you’ve gotten familiar with the IM column store let’s look at the b
     session pga memory                                             12779928
     table scans (IM)                                                      1
     ````
-   	IM scan CUs columns theoretical max = 748 is count of columns that would be accessed if each scan looked at all columns units (CUs) in all IMCUs for that column. However, the IMCUs actually accessed is <b>IM scan CUs memcompress for query low = 44</b>. This optimization is due to elimination of column access storing Min/Max info for each IMCU column structure.
+      	IM scan CUs columns theoretical max = 748 is count of columns that would be accessed if each scan looked at all columns units (CUs) in all IMCUs for that column. However, the IMCUs actually accessed is <b>IM scan CUs memcompress for query low = 44</b>. This optimization is due to elimination of column access storing Min/Max info for each IMCU column structure.
     As the query did not have a filter, it was expected to scan all IMCUs and all CUs within the IMCU for the segment that is if there wouldn’t be column projection, but as you can see, only one column CU per IMCU is touched because of column projection. This is evident in the IM scan CU columns theoretical max value of 748 (44 IMCUs x 17 columns) from which IM scan CUs columns accessed are only 44 which happen to be the total IMCUs for 1 column.
 
 3.  To execute the same query against the buffer cache you will need to disable the IM column store via a hint called NO_INMEMORY or at session level and disable INMEMORY_QUERY.
@@ -338,6 +338,7 @@ Up until now we have been focused on queries that scan only one table, the LINEO
  Notice the following expression in the query:
 
 ````(lo_ordtotalprice - (lo_ordtotalprice*(lo_discount/100)) + lo_tax)
+
 ````
 
 This expression is simply an arithmetic expression to find the total price charged with discount and tax included, and is deterministic. We will create a virtual column and re-populate the LINEORDER table to see what difference it makes.
@@ -444,8 +445,7 @@ This simple example shows that even relatively simple expressions can be computa
 
 Using the native binary representation of numbers rather than the full precision Number format means that certain aggregation and arithmetic operations are tens of times faster than in previous version of In-Memory as we are able to take advantage of the SIMD Vector processing units on CPUs
 
-    ![](images/IMOptimizedAritemetic.png)
-
+    ![](images\IMOptimizedArithmetic.png) PLOT_DATALABELS_BAR_POSITION
 
 ## Conclusion
 
