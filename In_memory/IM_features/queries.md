@@ -337,7 +337,8 @@ Up until now we have been focused on queries that scan only one table, the LINEO
 
  Notice the following expression in the query:
 
-````(lo_ordtotalprice - (lo_ordtotalprice*(lo_discount/100)) + lo_tax)
+````
+(lo_ordtotalprice - (lo_ordtotalprice*(lo_discount/100)) + lo_tax)
 
 ````
 
@@ -366,6 +367,7 @@ alter table lineorder inmemory ;
 select /*+ noparallel */ count(*) from lineorder ;
 <\copy>
 ````
+
 Now let's re-run our query and see if there is any difference:
 ````
 <copy>
@@ -398,21 +400,20 @@ This simple example shows that even relatively simple expressions can be computa
   ------------------------------------ ----------- ------------------------------
   inmemory_expressions_usage           string      ENABLE
   ````
- Let us restore the lineorder table and drop the virtual column.
+ #### Let us restore the lineorder table and drop the virtual column.
  ````
  <copy>
  alter table lineorder no inmemory;
  ALTER TABLE lineorder DROP COLUMN v1;
  alter table lineorder inmemory ;
  select /*+ noparallel */ count(*) from lineorder ; </copy
-
  ````
 
-  Since 18c, there are 2 ways to capture the expressions automatically. They are either during a window or current.
-  For the window function, we use dbms_inmemory_admin.ime_open_capture_window() to start.
-  dbms_inmemory_admin.ime_close_capture_window() to stop capturing the inmemory expression and run
-  dbms_inmemory_admin.ime_capture_expressions('WINDOW') to automatically generate automatic In-Memory expressions.
-  The other alternative is to simple run dbms_inmemory_admin.ime_capture_expressions('CURRENT') which will capture the expressions from the shared pool.
+Since 18c, there are 2 ways to capture the expressions automatically. They are either during a window or current.
+For the window function, we use dbms_inmemory_admin.ime_open_capture_window() to start.
+dbms_inmemory_admin.ime_close_capture_window() to stop capturing the inmemory expression and run
+dbms_inmemory_admin.ime_capture_expressions('WINDOW') to automatically generate automatic In-Memory expressions.
+The other alternative is to simple run dbms_inmemory_admin.ime_capture_expressions('CURRENT') which will capture the expressions from the shared pool.
 
   ````
   <copy>
@@ -433,19 +434,59 @@ This simple example shows that even relatively simple expressions can be computa
   </copy>
   ````
 
-  Now check if the expression is captured.
-  ````
-  select ...
-  ````
+Now check if the expression is captured.
+````
+  select
+````
 
-  Now rerun the query and verify you see "IM scan EU ..." instead on only "IM scan CU ..." statistics.
-
+Now rerun the query and verify you see "IM scan EU ..." instead on only "IM scan CU ..." statistics.
 
 ## In-Memory Optimized Arithmetic
 
-Using the native binary representation of numbers rather than the full precision Number format means that certain aggregation and arithmetic operations are tens of times faster than in previous version of In-Memory as we are able to take advantage of the SIMD Vector processing units on CPUs
+Using the native binary representation of numbers rather than the full precision Number format means that certain aggregation and arithmetic operations are tens of times faster than in previous version of In-Memory as we are
+able to take advantage of the SIMD Vector processing units on CPUs
 
-    ![](images\IMOptimizedArithmetic.png) PLOT_DATALABELS_BAR_POSITION
+![](images\IMOptimizedArithmetic.png)
+
+In-Memory Optimized Arithmetic are available in 18c and encodes the NUMBER data type as a fixed-width native
+integer scaled by a common exponent. This enables faster calculations using SIMD hardware. The Oracle Database
+NUMBER data type has high fidelity and precision. However, NUMBER can incur a significant performance overhead
+for queries because arithmetic operations cannot be performed natively in hardware. The In-Memory optimized
+number format enables native calculations in hardware for segments compressed with the QUERY LOW compression
+option.
+Not all row sources in the query processing engine have support for the In-Memory optimized number format so the
+IM column store stores both the traditional Oracle Database NUMBER data type and the In-Memory optimized number
+type. This dual storage increases the space overhead, sometimes up to 15%.
+In-Memory Optimized Arithmetic is controlled by the initialization parameter INMEMORY_OPTIMIZED_ARITHMETIC.
+The parameter values are DISABLE (the default) or ENABLE. When set to ENABLE, all NUMBER columns for tables that
+use FOR QUERY LOW compression are encoded with the In-Memory optimized format when populated (in addition to
+12 | ORACLE DATABASE IN-MEMORY WITH ORACLE DATABASE 19C
+the traditional Oracle Database NUMBER data type). Switching from ENABLE to DISABLE does not immediately drop
+the optimized number encoding for existing IMCUs. Instead, that happens when the IM column store repopulates
+affected IMCUs.
+
+#### Set
+````
+SQL> <copy> show parameter INMEMORY_OPTIMIZED_ARITHMETIC
+      alter system set INMEMORY_OPTIMIZED_ARITHMETIC=enable;
+      show parameter INMEMORY_OPTIMIZED_ARITHMETIC </copy>
+      SQL> show parameter INMEMORY_OPTIMIZED_ARITHMETIC
+
+      NAME                                 TYPE        VALUE
+      ------------------------------------ ----------- ------------------------------
+      inmemory_optimized_arithmetic        string      ENABLE
+
+      SQL> alter system set INMEMORY_OPTIMIZED_ARITHMETIC=enable;
+      System altered.
+ ````
+Now reload lineorder
+````
+<copy>
+alter table lineorder no inmemory;
+alter table lineorder inmemory ;
+select /*+ noparallel */ count(*) from lineorder ; </copy
+````
+
 
 ## Conclusion
 

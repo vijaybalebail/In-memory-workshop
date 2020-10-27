@@ -241,3 +241,43 @@ FROM USER_TABLES
 WHERE TABLE_NAME = 'BONUS';
 </copy>
 ````
+## In-Memory FastStart
+
+n-Memory FastStart was introduced in 12.2 to speed up the re-population of the IM column store when an instance is restarted. IM FastStart works by periodically checkpointing IMCUs to a designated IM FastStart tablespace. This is done automatically by background processes. The motivation for FastStart is to reduce the I/O and CPU intensive work required to convert row based data into columnar data with the associated compression and IM storage indexes that are part of the population process. With IM FastStart the actual columnar formatted data is written out to persistent storage and can be read back faster and with less I/O and CPU than if the data has to be re-populated from the row-store. It is also worth noting that if the IM FastStart tablespace fills up or becomes unavailable the operation of the IM column store is not affected.
+
+The IM FastStart area does not change the behavior of population. Priorities are still honored and if data is not found in the IM FastStart area, that is it hasn't been written to the IM FastStart area yet or it has been changed, then that data is read from the row-store. If a segment is marked as "NO INMEMORY" then it is removed from the IM FastStart area. The bottom line is that IM FastStart hasn't changed the way Database In-Memory works, it just provides a faster mechanism to re-populate in-memory data.
+
+So how does this work? The first thing you have to do is to enable IM FastStart. You do this by designating a tablespace that you create as the IM FastStart tablespace. It must be empty and be able to store the contents of the IM column store. Oracle recommends that the tablespace be sized at twice the size of the INMEMORY_SIZE parameter setting.
+
+````
+<copy>
+conn / as sysdba
+alter session set container=orclpdb;
+alter session set container=orclpdb ;
+exec dbms_inmemory_admin.faststart_enable('USERS', FALSE);
+,/copy>
+````
+
+verify that that FastStart is enabled.
+````
+<copy>
+ column tablespace_name format a10
+ select tablespace_name, status, allocated_size, used_size from
+ v$inmemory_faststart_area; </copy>
+
+TABLESPACE STATUS     ALLOCATED_SIZE  USED_SIZE
+---------- ---------- -------------- ----------
+USERS      ENABLE         4206100480 2215837696
+````
+The actual IM FastStart data is written to a SecureFile LOB in the IM FastStart tablespace. You can display the LOB information from the DBA_LOBS view:
+````
+<copy>
+column segment_name format a20
+select segment_name, logging from dba_lobs where tablespace_name='USERS';
+</copy>
+
+SEGMENT_NAME         LOGGING
+-------------------- -------
+SYSDBIMFS_LOBSEG$    YES
+
+````
