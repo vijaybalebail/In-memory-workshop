@@ -1,14 +1,17 @@
-# Enable In-Memory
+# In-Memory Enable and Loading
 
-Oracle Database In-Memory option comes preinstalled with the Oracle Database 12c and does not require additional software installation or recompilation of existing database software. This is because the In-Memory option has been seamlessly integrated into the core of the Oracle Database software as a new component of the Shared Global Area (SGA), so when the Oracle Database is installed, Oracle Database In-Memory gets installed with it.
+Oracle Database In-Memory option comes preinstalled with the Oracle Database and does not require additional software installation or recompilation of existing database software. This is because the In-Memory option has been seamlessly integrated into the core of the Oracle Database software as a new component of the Shared Global Area (SGA), so when the Oracle Database is installed, Oracle Database In-Memory gets installed with it.
 However, the IM column store is not enabled by default, but can be easily enabled via a few steps, as outlined in this lesson.
 It is important to remember that after the In-Memory option is enabled at the instance level, you also have to specifically enable objects so they would be considered for In-Memory column store population.
 
+![](images/In-memory-sga.png)
+
+## In-Memory Pool 
+
+## Step 1: Enabling In-Memory
 
 
-##  Step 1: Logging In and Enabling In-Memory
-
-1.  All scripts for this lab are stored in the labs/inmemory folder and are run as the oracle user.  Let's navigate there now.  We recommend you type the commands to get a feel for working with In-Memory. But we will also allow you to copy the commands via the COPY button.
+Step 1.  All scripts for this lab are stored in the labs/inmemory folder and are run as the oracle user.  Let's navigate there now.  We recommend you type the commands to get a feel for working with In-Memory. But we will also allow you to copy the commands via the COPY button.
 
     ````
     <copy>
@@ -64,7 +67,7 @@ Note :  The default install of database usually set a parameter MEMORY_TARGET wh
     </copy>
     ````
 
-## Step 2: Enabling In-Memory
+## Step 2: Enable objects  In-Memory
 
 The Oracle environment is already set up so sqlplus can be invoked directly from the shell environment. Since the lab is being run in a pdb called orclpdb you must supply this alias when connecting to the ssb account.
 
@@ -241,9 +244,32 @@ FROM USER_TABLES
 WHERE TABLE_NAME = 'BONUS';
 </copy>
 ````
-## Step 3: Loading partial Tables or columns
+## Step 3: Loading Data.
 
-In order to conserve the In-Memore pool in SGA, we need not load all the data. In case of a Big partitioned table, we can load only the partition that is relavent.
+In order to conserve the In-Memory pool in SGA, we need not load all the data. In case of a Big partitioned table, we can load only the partition that is relevant.
+Also, each partition can be compress to a different level and have different priority for loading. Below is a example.
+
+````
+CREATE TABLE list_customers
+   ( customer_id             NUMBER(6)
+   , cust_first_name         VARCHAR2(20)
+   , cust_last_name          VARCHAR2(20)
+   , cust_address            CUST_ADDRESS_TYP
+   , nls_territory           VARCHAR2(30)
+   , cust_email              VARCHAR2(40))
+   PARTITION BY LIST (nls_territory) (
+   PARTITION asia VALUES ('CHINA', 'THAILAND')
+         INMEMORY MEMCOMPRESS FOR CAPACITY HIGH PRIORITY HIGH,
+   PARTITION europe VALUES ('GERMANY', 'ITALY', 'SWITZERLAND')
+         INMEMORY MEMCOMPRESS FOR CAPACITY LOW,
+   PARTITION west VALUES ('AMERICA')
+         INMEMORY MEMCOMPRESS FOR CAPACITY LOW,
+   PARTITION east VALUES ('INDIA')
+         INMEMORY MEMCOMPRESS FOR CAPACITY HIGH,
+   PARTITION rest VALUES (DEFAULT) NO INMEMORY;
+
+````
+To verify the propeties you can look at USER_Tables, USER_TAB_PARTITIONS or USER_SUB
 
 ## Step 4: In-Memory FastStart
 
