@@ -1,4 +1,4 @@
-# In-Memory Enable and Loading
+# In-Memory configuration
 
 Oracle Database In-Memory option comes preinstalled with the Oracle Database and does not require additional software installation or recompilation of existing database software. This is because the In-Memory option has been seamlessly integrated into the core of the Oracle Database software as a new component of the Shared Global Area (SGA), so when the Oracle Database is installed, Oracle Database In-Memory gets installed with it.
 However, the IM column store is not enabled by default, but can be easily enabled via a few steps, as outlined in this lesson.
@@ -95,8 +95,7 @@ The Oracle environment is already set up so sqlplus can be invoked directly from
     ````
 
 
-3.  
-To check if the IM column store is populated with object, run the query below.
+3.  To check if the IM column store is populated with object, run the query below.
 
     ````
     <copy>
@@ -108,29 +107,44 @@ To check if the IM column store is populated with object, run the query below.
     </copy>
     ````
 
+ 4. Let us create a table and enable In-Memory.
 
-  4.  To add objects to the IM column store the inmemory attribute needs to be set.  This tells the Oracle DB these tables should be populated into the IM column store.
-  Objects are populated into the IM column store either in a prioritized list immediately after the database is opened or
-  after they are scanned (queried) for the first time. The order in which objects are populated is controlled by the
-  keyword PRIORITY, which has five levels. The default PRIORITY is NONE, which means an object is populated only after it is scanned for the first time. All objects at a given priority level must be fully populated before the population of any objects at a lower priority level can commence. However, the population order can be superseded if an object without a PRIORITY is scanned, triggering its population into IM column store.
+    ````
+    <copy>
+    CREATE TABLE bonus (id number, emp_id number, bonus NUMBER year date ) INMEMORY ;
+    </copy>
+    ````
 
-  To enable an existing table for the IM column store, you would use the ALTER table DDL with the INMEMORY clause and the PRIORITY parameter. The syntax for this statement is:
+ 5. Check the in-memory attributes of PARTS by querying USER_TABLES. The columns to check are INMEMORY, INMEMORY_PRIORITY, INMEMORY_COMPRESSION, INMEMORY_DISTRIBUTE and INMEMORY_DUPLICATE.
+     ````
+     <copy>
+     SELECT INMEMORY, INMEMORY_PRIORITY, INMEMORY_COMPRESSION, INMEMORY_DISTRIBUTE, INMEMORY_DUPLICATE
+     FROM USER_TABLES WHERE TABLE_NAME = 'BONUS';
+     </copy>
+     ````
+
+   As you can observer, When we enable a table with INMEMORY, the INMEMORY PRIORITY is NONE and the COMPRESSION is set to *FOR QUERY LOW*.
+   With no priority settings for In-Menory, the table will gets loaded the next time a query accesses the table.
+
+
+  4.  Enabling priority for Table loading.
+   The order in which objects are populated is controlled by the keyword PRIORITY, which has five levels. The default PRIORITY is NONE, which means an object is populated only after it is scanned for the first time. All objects at a given priority level must be fully populated before the population of any objects at a lower priority level can commence. However, the population order can be superseded if an object without a PRIORITY is scanned, triggering its population into IM column store.
+
+   To enable an existing table for the IM column store, you would use the ALTER table DDL with the INMEMORY clause and the PRIORITY parameter. The syntax for this statement is:
   	ALTER TABLE … INMEMORY PRIORITY [NONE|LOW|MEDIUM|HIGH|CRITICAL]
+    ````
+    <copy>
+    Alter Table bonus INMEMORY PRIORITY HIGH ;
+    </copy>
+    ````
 
+  5. Enabling compression levels
   In-memory compression is specified using the keyword MEMCOMPRESS, a sub-clause of the INMEMORY attribute.
   There are six levels, each of which provides a different level of compression and performance.
+  Each successive level typically decreases the amount of memory required to populate the object at a possible reduction in scan performance.
 
    ![](images/compress.png)
 
-   5. Let us create a table and enable In-Memory.
-     ````
-     <copy>
-      CREATE TABLE bonus
-      (id number,
-       emp_id number,
-       bonus NUMBER
-       year date) INMEMORY; </copy>
-      ````
 
    6. Alter existing tables and enable In-Memory.
 
@@ -143,13 +157,6 @@ To check if the IM column store is populated with object, run the query below.
           ALTER TABLE date_dim INMEMORY ;
           </copy>
       ````
-      By default, all of the columns in an object with the INMEMORY attribute will be populated into the IM column store.
-  However, it is possible to populate only a subset of columns if desired. For example, the following statement sets the
-  E.g Enabling the In-Memory attribute on the sales table but excluding the prod_id column
-  ALTER TABLE sales INMEMORY NO INMEMORY(prod_id)
-
-  Similarly, for a partitioned table, all of the table's partitions inherit the in-memory attribute but it is possible to
-  populate just a subset of the partitions or subpartitions.
 
   7.  This looks at the USER_TABLES view and queries attributes of tables in the SSB schema.  
 
@@ -173,7 +180,7 @@ To check if the IM column store is populated with object, run the query below.
       ````
 
 
-  8.  Let's populate the store with some simple queries.
+  8.  Let's us query the table with noparallel hint. This will ensure that tables with no LOAD priority will get loaded to In-Memory pool.
 
       ````
       <copy>
@@ -184,11 +191,6 @@ To check if the IM column store is populated with object, run the query below.
       SELECT /*+ full(lo) noparallel (lo )*/ Count(*) FROM   lineorder lo;
       </copy>
       ````
-      By default, all of the columns in an object with the INMEMORY attribute will be populated into the IM column store.
-  However, it is possible to populate only a subset of columns if desired. For example, the following statement sets the
-  In-Memory attribute on the table SALES,
-  ALTER TABLE sales INMEMORY NO INMEMORY(prod_id);
-
 
 
 9. Background processes are populating these segments into the IM column store.  To monitor this, you could query the V$IM_SEGMENTS.  Once the data population is complete, the BYTES_NOT_POPULATED should be 0 for each segment.  
@@ -243,9 +245,9 @@ To check if the IM column store is populated with object, run the query below.
     WHERE TABLE_NAME = 'BONUS';
     </copy>
     ````
-## Step 3: Loading Data.
+## Step 3: Partial In-Memory Data.
 
-In order to conserve the In-Memory pool in SGA, we need not load all the data. In case of a Big partitioned table, we can load only the partition that is relevant.
+13. In order to conserve the In-Memory pool in SGA, we need not load all the data. In case of a Big partitioned table, we can load only the partition that is relevant.
 Also, each partition can be compress to a different level and have different priority for loading. Below is a example.
 
 ````
@@ -268,7 +270,40 @@ CREATE TABLE list_customers
    PARTITION rest VALUES (DEFAULT) NO INMEMORY;
 
 ````
-To verify the propeties you can look at USER_Tables, USER_TAB_PARTITIONS or USER_SUB
+
+By default, all of the columns in an object with the INMEMORY attribute will be populated into the IM column store.
+However, it is possible to populate only a subset of columns. If a table has Many columns, but the query only uses a access few columns , then its possible to lond only those columns. Even these columns can be loaded with MEMCOMPRESS levels.
+For example, to enable an existing table for the IM column store, you would use the ALTER table DDL with the INMEMORY clause, along with the in-memory column clause as shown below.
+  ````
+	. ALTER TABLE … 	INMEMORY (col1)
+	. ALTER TABLE … 	INMEMORY (col1, col2)
+	. ALTER TABLE … 	NO INMEMORY (col1, col2)
+	. ALTER TABLE … 	INMEMORY MEMCOMPRESS QUERY LOW (col1)
+	. ALTER TABLE … 	INMEMORY MEMCOMPRESS QUERY HIGH (col2) NO INMEMORY (col3) INMEMORY PRIORITY HIGH
+ ````
+14. Enable partial columns for In-Memory.
+````
+<copy>
+ALTER TABLE BONUS INMEMORY  
+INMEMORY (emp_id,bonus,year) NO INMEMORY (id) ;
+</copy>
+````
+
+ 15. For column level information, check V$IM_COLUMN_LEVEL to see the columns that are enabled for the IM column store.
+ ````
+ <copy>
+ ALTER TABLE BONUS INMEMORY  INMEMORY (emp_id,bonus,year) NO INMEMORY (id) ;
+ </copy>
+ ````
+ 16. check the In-Memory parameters at column level.
+ ````
+ <copy>
+ SELECT TABLE_NAME, COLUMN_NAME, INMEMORY_COMPRESSION
+ FROM V$IM_COLUMN_LEVEL
+ WHERE TABLE_NAME = 'BONUS'; </copy>
+ ````
+ Note: Until 20c, Oracle optimizer will not choose the In-Memory table if all the rows in the select and filter are not loaded into memory.
+ In 20c, a new feature called hybrid scan will allows optimizer to choose In-Memory table if the filter columns are present and access buffer cache to access rows in the select portion of the query.
 
 ## Step 4: In-Memory FastStart
 
@@ -314,3 +349,4 @@ To Disable In-Memory FastStart , run the following.
 ````
 exec DBMS_INMEMORY_ADMIN.FASTSTART_DISABLE();
 ````
+We have looked at how we can configure In-Memory pool and Tables and how to load them. Next we will look at some of the optimizations to speed up queries.
