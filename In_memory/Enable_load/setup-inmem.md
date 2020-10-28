@@ -243,6 +243,7 @@ WHERE TABLE_NAME = 'BONUS';
 ````
 ## Step 3: Loading partial Tables or columns
 
+In order to conserve the In-Memore pool in SGA, we need not load all the data. In case of a Big partitioned table, we can load only the partition that is relavent.
 
 ## Step 4: In-Memory FastStart
 
@@ -283,4 +284,8 @@ SEGMENT_NAME         LOGGING
 -------------------- -------
 SYSDBIMFS_LOBSEG$    YES
 
+````
+To Disable In-Memory FastStart , run the following.
+````
+exec DBMS_INMEMORY_ADMIN.FASTSTART_DISABLE();
 ````
