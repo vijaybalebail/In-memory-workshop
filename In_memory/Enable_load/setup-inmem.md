@@ -354,13 +354,14 @@ CREATE TABLE ext_emp  ( ID NUMBER(6), FIRST_NAME VARCHAR2(20),
  </copy>
 ````
 
-19. poplulate as sys user of ORCLPDB and verify its populated.
+19. poplulate external table  and verify its populated.
 
 ````
-conn sys/oracle@orclpdb as sysdba
+<copy>
 SELECT owner, segment_name, populate_status, con_id FROM v$im_segments where segment_name='EXT_EMP';
 EXEC dbms_inmemory.populate ('SSB','EXT_EMP')
 SELECT owner, segment_name, populate_status, con_id FROM v$im_segments where segment_name='EXT_EMP';
+</copy>
 ````
 
 20. Query In-Memory external table.
@@ -376,8 +377,9 @@ SELECT count(*) FROM ext_emp;
 SELECT * FROM table(dbms_xplan.display_cursor());
 ````
 Notice that tha plan changed from *EXTERNAL TABLE ACCESS FULL* to *EXTERNAL TABLE ACCESS INMEMORY FULL*.
+Note that if you append data to the external file, you will have to repopulate to In-Memory.
 
-## Step 4: In-Memory FastStart
+## Step 5: In-Memory FastStart
 
 In-Memory FastStart was introduced in 12.2 to speed up the re-population of the IM column store when an instance is restarted. IM FastStart works by periodically checkpointing IMCUs to a designated IM FastStart tablespace. This is done automatically by background processes. The motivation for FastStart is to reduce the I/O and CPU intensive work required to convert row based data into columnar data with the associated compression and IM storage indexes that are part of the population process. With IM FastStart the actual columnar formatted data is written out to persistent storage and can be read back faster and with less I/O and CPU than if the data has to be re-populated from the row-store. It is also worth noting that if the IM FastStart tablespace fills up or becomes unavailable the operation of the IM column store is not affected.
 

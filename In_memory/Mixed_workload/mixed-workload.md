@@ -1,9 +1,14 @@
-# In-Memory Queries
+# In-Memory Mixed workload
 
 ## Introduction
 
+In a OLTP production environment, it is common to expect the datbase to run 1000s of transactions with very little toleration to poor throughput. In such environments, It is a common strategy to make a redundant copy of data in a data wherehouse system where analytic queries are run.
 
-### Lab Preview
+Also, if there are reports running of OLRP production database, we usually have several indexes on reporting tables to ensure that the reports run efficiently and not cause some unexpected heavy load on the OTLP system. More indexes we have in a OLTP system, the slower the DML operations happens due to the extra operations and logging of INSERT,DELETE operations on the underlying indexes.
+
+ Now with in-memory , these queries can run without the need of additional reporting indexes. This helps in reducing the storage space and also improve performance of DML operations.
+
+ ![](../images/lessIndexs.png)
 
 Watch a preview video of querying the In-Memory Column Store
 
