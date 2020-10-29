@@ -9,7 +9,7 @@ Watch a preview video of querying the In-Memory Column Store
 
 [](youtube:U9BmS53KuGs)
 
-## Step: Querying the In-Memory Column Store
+## Step 1: Querying the In-Memory Column Store
 
 Now that you’ve gotten familiar with the IM column store let’s look at the benefits of using it. You will execute a series of queries against the large fact table LINEORDER, in both the buffer cache and the IM column store, to demonstrate the different ways the IM column store can improve query performance above and beyond the basic performance benefits of accessing data in memory only.
 
@@ -86,7 +86,7 @@ Now that you’ve gotten familiar with the IM column store let’s look at the b
     ALTER SESSION SET INMEMORY_QUERY= DIAABLE|ENABLE;
     ````
 
-  We can run the above query with a hint and note the time and plan.
+  4. We can run the above query with a hint and note the time and plan.
 
 
     ````
@@ -111,8 +111,10 @@ Now that you’ve gotten familiar with the IM column store let’s look at the b
 
     In order to confirm that the IM column store was used, we need to examine the session level statistics. Notice that in the INMEMORY run several IM statistics show up (for this lab we have only displayed some key statistics – there are lots more!). The only one we are really interested in now is the "IM scan CUs columns accessed" which highlights IM optimization to further improve performance.
 
+## Step 2: In-Memory Indexing Storage Indexing
+  In the *Introduction and Overview*, we saw how min-max and dictionary based pruning could work as Index. We will now query the table and filter based on a where condition.
 
-4.  Let's look for a specific order in the LINEORDER table based on the order key.  Typically, a full table scan is not an efficient execution plan when looking for a specific entry in a table.
+5.  Let's look for a specific order in the LINEORDER table based on the order key.  Typically, a full table scan is not an efficient execution plan when looking for a specific entry in a table.  
 
     ````
     <copy>
@@ -132,7 +134,7 @@ Now that you’ve gotten familiar with the IM column store let’s look at the b
 
 
 
-5.  Think indexing lo_orderkey would provide the same performance as the IM column store? There is an invisible index already created on the lo_orderkey column of the LINEORDER table. By using the parameter OPTIMIZER_USE_INVISIBLE_INDEXES we can compare the performance of the IM column store and the index. Let's see how well the index performs.  
+6.  Think indexing lo_orderkey would provide the same performance as the IM column store? There is an invisible index already created on the lo_orderkey column of the LINEORDER table. By using the parameter OPTIMIZER_USE_INVISIBLE_INDEXES we can compare the performance of the IM column store and the index. Let's see how well the index performs.  
 
     ````
     <copy>
@@ -154,7 +156,7 @@ Now that you’ve gotten familiar with the IM column store let’s look at the b
     We observe that , when index is available on the filter column of the query, the optimizer chose INDEX SCAN over INMEMORY FULL TABLE SCAN.
 
 
-6.  Analytical queries have more than one equality WHERE clause predicate. What happens when there are multiple single column predicates on a table? Traditionally you would create a multi-column index. Can storage indexes compete with that?  
+7.  Analytical queries have more than one equality WHERE clause predicate. What happens when there are multiple single column predicates on a table? Traditionally you would create a multi-column index. Can storage indexes compete with that?  
 
     Let’s change our query to look for a specific line item in an order and monitor the session statistics:
 
@@ -190,7 +192,7 @@ Now that you’ve gotten familiar with the IM column store let’s look at the b
     ![](images/num6.png)   
 
 
-    ##  In-Memory Joins and Aggregation
+## Step 3: In-Memory Joins and In-Memory Aggregation
 
 Up until now we have been focused on queries that scan only one table, the LINEORDER table. Let’s broaden the scope of our investigation to include joins and parallel execution. This section executes a series of queries that begin with a single join between the  fact table, LINEORDER, and a dimension table and works up to a 5 table join. The queries will be executed in both the buffer cache and the column store, to demonstrate the different ways the column store can improve query performance above and beyond the basic performance benefits of scanning data in a columnar format.
 
@@ -297,7 +299,7 @@ Up until now we have been focused on queries that scan only one table, the LINEO
 
    This is where Oracle’s 30 plus years of database innovation kick in. By embedding the column store into Oracle Database we can take advantage of all of the optimizations that have been added to the database. In this case, the Optimizer has switched from its typically left deep tree to create a right deep tree using an optimization called ‘swap_join_inputs’. *Your instructor can explain ‘swap_join_inputs’ in more depth should you wish to know more. What this means for the IM column store is that we are able to generate multiple Bloom filters before we scan the necessary columns for the fact table, meaning we are able to benefit by eliminating rows during the scan rather than waiting for the join to do it.*
 
-## In-Memory Join Group
+## Step 4: In-Memory Join Group
 
    A new In-Memory feature called Join Groups was introduced with the Database In-Memory Option in Oracle Database 12.2.  Join Groups can be created to significantly speed up hash join performance in an In-Memory execution plan.  Creating a Join Group involves identifying up-front the set of join key columns (across any number of tables) likely to be joined with by subsequent queries.  
 
@@ -307,7 +309,7 @@ Up until now we have been focused on queries that scan only one table, the LINEO
      CREATE INMEMORY JOIN GROUP  JoinGroup (lineorder(lo_orderdate),date_dim (d_datekey)) ;
    ````
 
-## In-Memory Expressions
+## Step 5: In-Memory Expressions
    In-Memory Expressions (IM expressions) provide the ability to materialize simple deterministic expressions and store them in the In-Memory column store (IM column store) so that they only have to be calculated once, not each time they are accessed. They are also treated like any other column in the IM column store so the database can scan and filter those columns and take advantage of all Database In-Memory query optimizations like SIMD vector processing and IM storage indexes.
 
    There are actually two types of IM expressions, a user-defined In-Memory virtual column (IM virtual column) that meets the requirements of an IM expression, and automatically detected IM expressions which are stored as a hidden virtual column when captured.
@@ -441,7 +443,7 @@ Now check if the expression is captured.
 
 Now rerun the query and verify you see "IM scan EU ..." instead on only "IM scan CU ..." statistics.
 
-## In-Memory Optimized Arithmetic
+## Step 6: In-Memory Optimized Arithmetic
 
 Using the native binary representation of numbers rather than the full precision Number format means that certain aggregation and arithmetic operations are tens of times faster than in previous version of In-Memory as we are
 able to take advantage of the SIMD Vector processing units on CPUs
@@ -496,7 +498,7 @@ These significant performance improvements are possible because of Oracle’s un
 
 ## Acknowledgements
 
-- **Author** - Andy Rivenes, Sr. Principal Product Manager, Oracle Database In-Memory
-- **Last Updated By/Date** - Kay Malcolm, Director, DB Product Management, March 2020
+- **Author** - Vijay Balebail , Andy Rivenes
+- **Last Updated By/Date** - Oct 2020.
 
 See an issue?  Please open up a request [here](https://github.com/oracle/learning-library/issues).

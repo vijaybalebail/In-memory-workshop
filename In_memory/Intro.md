@@ -88,8 +88,6 @@ A new optimizer transformation, called **Vector Group By**, was introduced with 
 
 The In-Memory optimized number format enables native calculations in hardware for segments compressed with the QUERY LOW compression option. Not all row sources in the query processing engine have support for the In-Memory optimized number format so the IM column store stores both the traditional Oracle Database NUMBER data type and the In-Memory optimized number type. This dual storage increases the space overhead, sometimes up to 15%.
 
-**In-Memory Virtual Columns :**  User-defined virtual columns can now be populated in the IM column store. Virtual columns will be materialized as they are populated and since the expression is evaluated at population time it can be retrieved repeatedly without re-evaluation.
-
 ## In-Memory Architecture
 
 The IM column store resides in the **In-Memory Area**, which is an optional portion of the system global area (SGA). The IM column store does not *replace* row-based storage or the database buffer cache, but *supplements* it.

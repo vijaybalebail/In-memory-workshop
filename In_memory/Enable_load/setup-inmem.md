@@ -21,11 +21,11 @@ Step 1.  All scripts for this lab are stored in the labs/inmemory folder and are
     </copy>
     ````
 
-2. The In-Memory Area is a static pool within the SGA that holds the column format data (also referred to as the In-Memory Column Store). The size of the In-Memory Area is controlled by the initialization parameter INMEMORY\_SIZE (default is 0, i.e. disabled).
+The In-Memory Area is a static pool within the SGA that holds the column format data (also referred to as the In-Memory Column Store). The size of the In-Memory Area is controlled by the initialization parameter INMEMORY\_SIZE (default is 0, i.e. disabled).
 As the IM column store is a static pool, any changes to the INMEMORY\_SIZE parameter will not take effect until the database instance is restarted.
-Note :  The default install of database usually set a parameter MEMORY_TARGET which manages both SGA (System Global Area) and PGA(Process Global Area). In the earlier version, AMM was not supported and we had to set SGA and PGA exclusively.
+Note :  The default install of database usually set a parameter MEMORY_TARGET which manages both SGA (System Global Area) and PGA(Process Global Area). In the earlier version, Automatic Memory Management (AMM) was not supported and we had to set SGA and PGA exclusively.
 
-
+2. Login as sys
     ````
 
     <copy>sqlplus / as sysdba ;
@@ -34,7 +34,7 @@ Note :  The default install of database usually set a parameter MEMORY_TARGET wh
     You will observe that you are connect to CDB (Container Database) with one PDB (pluggable Database) preinstalled.
 
 
-    Next, note the memory settings and enable In-Memory.
+3. Next, note the memory settings and enable In-Memory.
     ````
     <copy>
     show parameter inmemory_size
@@ -45,7 +45,7 @@ Note :  The default install of database usually set a parameter MEMORY_TARGET wh
     ````
 
 
-3.  Enter the commands to enable In-Memory.  The database will need to be restarted for the changes to take effect.
+4.  Enter the commands to enable In-Memory.  The database will need to be restarted for the changes to take effect.
 
     ````
     <copy>
@@ -56,7 +56,7 @@ Note :  The default install of database usually set a parameter MEMORY_TARGET wh
     ````
 
 
-4.  Now let's take a look at the parameters.
+5.  Now let's take a look at the parameters.
 
     ````
     <copy>

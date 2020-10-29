@@ -15,7 +15,7 @@
             "filename": "./about-the-workshop/Labsetup_mk.md"
         },
         {
-            "title": "LAB 01 :InMemory Basics",
+            "title": "LAB 01 :In-Memory Basics",
             "description": "Enable, load, QUERY",
             "partnumber": "Ennnnn_01",
             "publisheddate": "10/10/2020",
@@ -24,7 +24,7 @@
         },
 
         {
-            "title": "LAB 02 :InMemory Features",
+            "title": "LAB 02 :In-Memory Features",
             "description":"vector joins, hints,dbms packages.",
             "publisheddate": "04/07/2020",
             "filename":"./In_memory/IM_features/queries.md"
@@ -34,7 +34,7 @@
             "title": "LAB 03 :Mixed workoad",
             "description":"Multitenant Application Containers",
             "publisheddate": "04/07/2020",
-            "filename":"./mt-app-container/manage-app.md"
+            "filename":"./mt-app-container/mixed-workload.md"
         }
     ]
 }
