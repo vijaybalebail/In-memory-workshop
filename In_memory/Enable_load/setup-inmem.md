@@ -303,13 +303,83 @@ INMEMORY (emp_id,bonus,year) NO INMEMORY (id) ;
  WHERE TABLE_NAME = 'BONUS'; </copy>
  ````
  Note: Until 20c, Oracle optimizer will not choose the In-Memory table if all the rows in the select and filter are not loaded into memory.
- In 20c, a new feature called hybrid scan will allows optimizer to choose In-Memory table if the filter columns are present and access buffer cache to access rows in the select portion of the query.
+ In 20c, a new feature called hybrid scan will allows optimizer to choose In-Memory table if the filter columns are present and access buffer cache to get rows in the select portion of the query.
 
  ![](images/IMHybrid.png)
 
+## Step 4: In-Memory External Tables. (Cloud only)
+n-Memory External Tables builds on the theme of expanding analytic queries to all data, not just Oracle native data. Oracle Database already supports accessing external data with features like External Tables and Big Data SQL to allow fast and secure SQL query on all types of data. In-Memory External Tables allow essentially any type of data to be populated into the IM column store. This means non-native Oracle data can be analyzed with any data in Oracle Database using Oracle SQL and its rich feature set and also get the benefit of using all of the performance enhancing features of Database In-Memory.
+Currently , this feature is licensed for only Oracle Cloud databases.
+
+ ![](images/IMExternal.png)
+
+17. Create a external table on a comma separated text file in /home/oracle/labs.
+
+ ````
+ connect / as sysdba
+ show pdbs
+ alter session set container=orclpdb;
+ create or replace directory ext_dir as '/home/oracle/labs' ;
+ grant read,write on directory ext_dir to ssb;
+ conn ssb/Ora_DB4U@orclpdb
+
+CREATE TABLE ext_emp  ( ID NUMBER(6), FIRST_NAME VARCHAR2(20),
+     LAST_NAME VARCHAR2(25), EMAIL VARCHAR2(25),
+     PHONE_NUMBER VARCHAR2(20), HIRE_DATE DATE,
+     JOB_ID VARCHAR2(10), SALARY NUMBER(8,2),
+     COMMISSION_PCT NUMBER(2,2), MANAGER_ID NUMBER(6),
+     DEPARTMENT_ID NUMBER(4)
+     )
+     ORGANIZATION EXTERNAL
+     ( TYPE ORACLE_LOADER  DEFAULT DIRECTORY ext_dir
+       ACCESS PARAMETERS
+      (records delimited by newline
+       badfile ext_dir:'empxt%a_%p.bad'
+       logfile ext_dir:'empxt%a_%p.log'
+       fields terminated by ','  missing field values are null
+       (ID, FIRST_NAME, LAST_NAME, EMAIL, PHONE_NUMBER,
+         HIRE_DATE, JOB_ID, SALARY, COMMISSION_PCT,
+         MANAGER_ID, DEPARTMENT_ID)
+        )
+      LOCATION ('empext1.dat')
+     )
+ REJECT LIMIT UNLIMITED
+ INMEMORY;
+````
+
+18. Query the table. Note: External tables will not populate upon query..
+````
+<copy>
+ select count(*) from  ext_emp;
+ </copy>
+````
+
+19. poplulate as sys user of ORCLPDB and verify its populated.
+
+````
+conn sys/oracle@orclpdb as sysdba
+SELECT owner, segment_name, populate_status, con_id FROM v$im_segments where segment_name='EXT_EMP';
+EXEC dbms_inmemory.populate ('SSB','EXT_EMP')
+SELECT owner, segment_name, populate_status, con_id FROM v$im_segments where segment_name='EXT_EMP';
+````
+
+20. Query In-Memory external table.
+We need to set  QUERY_REWRITE_INTEGRITY = STALE_TOLERATED in order for the optimizer to query table from In-Memory.
+
+````
+conn ssb/Ora_DB4U@orclpdb
+SELECT count(*) FROM ext_emp ;
+SELECT * FROM table(dbms_xplan.display_cursor());
+-- verify we can access INMEMORY in the sql plan.
+ALTER SESSION SET QUERY_REWRITE_INTEGRITY = STALE_TOLERATED;
+SELECT count(*) FROM ext_emp;
+SELECT * FROM table(dbms_xplan.display_cursor());
+````
+Notice that tha plan changed from *EXTERNAL TABLE ACCESS FULL* to *EXTERNAL TABLE ACCESS INMEMORY FULL*.
+
 ## Step 4: In-Memory FastStart
 
-n-Memory FastStart was introduced in 12.2 to speed up the re-population of the IM column store when an instance is restarted. IM FastStart works by periodically checkpointing IMCUs to a designated IM FastStart tablespace. This is done automatically by background processes. The motivation for FastStart is to reduce the I/O and CPU intensive work required to convert row based data into columnar data with the associated compression and IM storage indexes that are part of the population process. With IM FastStart the actual columnar formatted data is written out to persistent storage and can be read back faster and with less I/O and CPU than if the data has to be re-populated from the row-store. It is also worth noting that if the IM FastStart tablespace fills up or becomes unavailable the operation of the IM column store is not affected.
+In-Memory FastStart was introduced in 12.2 to speed up the re-population of the IM column store when an instance is restarted. IM FastStart works by periodically checkpointing IMCUs to a designated IM FastStart tablespace. This is done automatically by background processes. The motivation for FastStart is to reduce the I/O and CPU intensive work required to convert row based data into columnar data with the associated compression and IM storage indexes that are part of the population process. With IM FastStart the actual columnar formatted data is written out to persistent storage and can be read back faster and with less I/O and CPU than if the data has to be re-populated from the row-store. It is also worth noting that if the IM FastStart tablespace fills up or becomes unavailable the operation of the IM column store is not affected.
 
 The IM FastStart area does not change the behavior of population. Priorities are still honored and if data is not found in the IM FastStart area, that is it hasn't been written to the IM FastStart area yet or it has been changed, then that data is read from the row-store. If a segment is marked as "NO INMEMORY" then it is removed from the IM FastStart area. The bottom line is that IM FastStart hasn't changed the way Database In-Memory works, it just provides a faster mechanism to re-populate in-memory data.
 
