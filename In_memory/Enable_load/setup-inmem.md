@@ -111,16 +111,22 @@ The Oracle environment is already set up so sqlplus can be invoked directly from
 
     ````
     <copy>
-    CREATE TABLE bonus (id number, emp_id number, bonus NUMBER year date ) INMEMORY ;
+    CREATE TABLE bonus (id number, emp_id number, bonus NUMBER, year date ) INMEMORY ;
     </copy>
     ````
 
- 5. Check the in-memory attributes of PARTS by querying USER_TABLES. The columns to check are INMEMORY, INMEMORY_PRIORITY, INMEMORY_COMPRESSION, INMEMORY_DISTRIBUTE and INMEMORY_DUPLICATE.
+ 5. Check the in-memory attributes of PARTS by querying USER_TABLES. The columns to check are INMEMORY, INMEMORY\_PRIORITY, INMEMORY\_COMPRESSION, INMEMORY\_DISTRIBUTE and INMEMORY\_DUPLICATE.
      ````
      <copy>
-     SELECT INMEMORY, INMEMORY_PRIORITY, INMEMORY_COMPRESSION, INMEMORY_DISTRIBUTE, INMEMORY_DUPLICATE
-     FROM USER_TABLES WHERE TABLE_NAME = 'BONUS';
+     SELECT INMEMORY, INMEMORY_PRIORITY, INMEMORY_COMPRESSION, INMEMORY_DISTRIBUTE,
+     INMEMORY_DUPLICATE FROM USER_TABLES WHERE TABLE_NAME = 'BONUS';
      </copy>
+
+
+      INMEMORY INMEMORY INMEMORY_COMPRESS INMEMORY_DISTRI INMEMORY_DUPL
+      -------- -------- ----------------- --------------- -------------
+      ENABLED  NONE     FOR QUERY LOW     AUTO            NO DUPLICATE
+
      ````
 
    As you can observer, When we enable a table with INMEMORY, the INMEMORY PRIORITY is NONE and the COMPRESSION is set to *FOR QUERY LOW*.
@@ -134,7 +140,7 @@ The Oracle environment is already set up so sqlplus can be invoked directly from
   	ALTER TABLE … INMEMORY PRIORITY [NONE|LOW|MEDIUM|HIGH|CRITICAL]
     ````
     <copy>
-    Alter Table bonus INMEMORY PRIORITY HIGH ;
+    ALTER TABLE  bonus INMEMORY PRIORITY HIGH ;
     </copy>
     ````
 
@@ -150,9 +156,10 @@ The Oracle environment is already set up so sqlplus can be invoked directly from
 
       ````
           <copy>
-          ALTER TABLE lineorder INMEMORY PRIORITY CRITCAL MEMCOMPRESS FOR QUERY HIGH;
+          set echo on
+          ALTER TABLE lineorder INMEMORY PRIORITY CRITICAL MEMCOMPRESS FOR QUERY HIGH;
           ALTER TABLE part INMEMORY PRIORITY HIGH;
-          ALTER TABLE customer INMEMORY PRIORITY MEFIUM;
+          ALTER TABLE customer INMEMORY PRIORITY MEDIUM;
           ALTER TABLE supplier INMEMORY PRIORITY LOW;
           ALTER TABLE date_dim INMEMORY ;
           </copy>
@@ -220,7 +227,6 @@ The Oracle environment is already set up so sqlplus can be invoked directly from
     column used_bytes      format 999,999,999,999;
     column populate_status format a15;
     select * from v$inmemory_area;
-    exit
     </copy>
     ````
 
@@ -245,17 +251,21 @@ The Oracle environment is already set up so sqlplus can be invoked directly from
     WHERE TABLE_NAME = 'BONUS';
     </copy>
     ````
+
+    We have learnt to how to add In-Memory attributes to tables, add priority and compress options. Oracle Database In-Memory is designed to be completely and seamlessly compatible with existing applications. No changes are required to use it with any application or tool that runs against Oracle Database. Analytic queries are automatically routed to the column store by the SQL optimizer, and transactional semantics are guaranteed by the database.
+
 ## Step 3: Partial In-Memory Data.
 
 13. In order to conserve the In-Memory pool in SGA, we need not load all the data. In case of a Big partitioned table, we can load only the partition that is relevant.
 Also, each partition can be compress to a different level and have different priority for loading. Below is a example.
 
 ````
+<copy>
 CREATE TABLE list_customers
    ( customer_id             NUMBER(6)
    , cust_first_name         VARCHAR2(20)
    , cust_last_name          VARCHAR2(20)
-   , cust_address            CUST_ADDRESS_TYP
+   , cust_address            VARCHAR2(40)
    , nls_territory           VARCHAR2(30)
    , cust_email              VARCHAR2(40))
    PARTITION BY LIST (nls_territory) (
@@ -267,8 +277,8 @@ CREATE TABLE list_customers
          INMEMORY MEMCOMPRESS FOR CAPACITY LOW,
    PARTITION east VALUES ('INDIA')
          INMEMORY MEMCOMPRESS FOR CAPACITY HIGH,
-   PARTITION rest VALUES (DEFAULT) NO INMEMORY;
-
+   PARTITION rest VALUES (DEFAULT) NO INMEMORY);
+</copy>
 ````
 
 By default, all of the columns in an object with the INMEMORY attribute will be populated into the IM column store.
@@ -289,7 +299,7 @@ INMEMORY (emp_id,bonus,year) NO INMEMORY (id) ;
 </copy>
 ````
 
- 15. For column level information, check V$IM_COLUMN_LEVEL to see the columns that are enabled for the IM column store.
+ 15. For column level information, check V$IM\_COLUMN\_LEVEL to see the columns that are enabled for the IM column store.
  ````
  <copy>
  ALTER TABLE BONUS INMEMORY  INMEMORY (emp_id,bonus,year) NO INMEMORY (id) ;
@@ -298,9 +308,20 @@ INMEMORY (emp_id,bonus,year) NO INMEMORY (id) ;
  16. check the In-Memory parameters at column level.
  ````
  <copy>
+ col table_name format a10
+ col column_name format a20
+ col inmemory_compression format a20
  SELECT TABLE_NAME, COLUMN_NAME, INMEMORY_COMPRESSION
  FROM V$IM_COLUMN_LEVEL
  WHERE TABLE_NAME = 'BONUS'; </copy>
+
+ TABLE_NAME COLUMN_NAME          INMEMORY_COMPRESSION
+---------- -------------------- --------------------
+BONUS      ID                   NO INMEMORY
+BONUS      EMP_ID               DEFAULT
+BONUS      BONUS                DEFAULT
+BONUS      YEAR                 DEFAULT
+
  ````
  Note: Until 20c, Oracle optimizer will not choose the In-Memory table if all the rows in the select and filter are not loaded into memory.
  In 20c, a new feature called hybrid scan will allows optimizer to choose In-Memory table if the filter columns are present and access buffer cache to get rows in the select portion of the query.
@@ -308,7 +329,7 @@ INMEMORY (emp_id,bonus,year) NO INMEMORY (id) ;
  ![](images/IMHybrid.png)
 
 ## Step 4: In-Memory External Tables. (Cloud only)
-n-Memory External Tables builds on the theme of expanding analytic queries to all data, not just Oracle native data. Oracle Database already supports accessing external data with features like External Tables and Big Data SQL to allow fast and secure SQL query on all types of data. In-Memory External Tables allow essentially any type of data to be populated into the IM column store. This means non-native Oracle data can be analyzed with any data in Oracle Database using Oracle SQL and its rich feature set and also get the benefit of using all of the performance enhancing features of Database In-Memory.
+In-Memory External Tables builds on the theme of expanding analytic queries to all data, not just Oracle native data. Oracle Database already supports accessing external data with features like External Tables and Big Data SQL to allow fast and secure SQL query on all types of data. In-Memory External Tables allow essentially any type of data to be populated into the IM column store. This means non-native Oracle data can be analyzed with any data in Oracle Database using Oracle SQL and its rich feature set and also get the benefit of using all of the performance enhancing features of Database In-Memory.
 Currently , this feature is licensed for only Oracle Cloud databases.
 
  ![](images/IMExternal.png)
@@ -358,23 +379,54 @@ CREATE TABLE ext_emp  ( ID NUMBER(6), FIRST_NAME VARCHAR2(20),
 
 ````
 <copy>
+col owner format A10
+col segment_name format A20
+
 SELECT owner, segment_name, populate_status, con_id FROM v$im_segments where segment_name='EXT_EMP';
 EXEC dbms_inmemory.populate ('SSB','EXT_EMP')
 SELECT owner, segment_name, populate_status, con_id FROM v$im_segments where segment_name='EXT_EMP';
 </copy>
+
+
+OWNER      SEGMENT_NAME         POPULATE_STAT     CON_ID
+---------- -------------------- ------------- ----------
+SSB        EXT_EMP              COMPLETED              3
+
 ````
 
 20. Query In-Memory external table.
-We need to set  QUERY_REWRITE_INTEGRITY = STALE_TOLERATED in order for the optimizer to query table from In-Memory.
+We need to set  QUERY\_REWRITE\_INTEGRITY = STALE_TOLERATED in order for the optimizer to query table from In-Memory.
 
 ````
+copy>
 conn ssb/Ora_DB4U@orclpdb
+set linesize 200
+set pages 10
+col plan_table_output format a140
 SELECT count(*) FROM ext_emp ;
 SELECT * FROM table(dbms_xplan.display_cursor());
 -- verify we can access INMEMORY in the sql plan.
 ALTER SESSION SET QUERY_REWRITE_INTEGRITY = STALE_TOLERATED;
 SELECT count(*) FROM ext_emp;
 SELECT * FROM table(dbms_xplan.display_cursor());
+</copy>
+SQL>
+PLAN_TABLE_OUTPUT
+--------------------------------------------------------------------------------------------------------------------------------------------
+SQL_ID  d720xtyhhdfx0, child number 0
+-------------------------------------
+SELECT count(*) FROM ext_emp
+Plan hash value: 546827939
+-------------------------------------------------------------------------------
+PLAN_TABLE_OUTPUT
+--------------------------------------------------------------------------------------------------------------------------------------------
+| Id  | Operation                   | Name    | Rows  | Cost (%CPU)| Time     |
+-------------------------------------------------------------------------------
+|   0 | SELECT STATEMENT            |         |       |     6 (100)|          |
+|   1 |  SORT AGGREGATE             |         |     1 |            |          |
+|   2 |   EXTERNAL TABLE ACCESS FULL| EXT_EMP |  2079 |     6   (0)| 00:00:01 |
+-------------------------------------------------------------------------------
+
 ````
 Notice that tha plan changed from *EXTERNAL TABLE ACCESS FULL* to *EXTERNAL TABLE ACCESS INMEMORY FULL*.
 Note that if you append data to the external file, you will have to repopulate to In-Memory.
@@ -390,10 +442,9 @@ So how does this work? The first thing you have to do is to enable IM FastStart.
 ````
 <copy>
 conn / as sysdba
-alter session set container=orclpdb;
-alter session set container=orclpdb ;
+alter session set container=orclpdb;;
 exec dbms_inmemory_admin.faststart_enable('USERS', FALSE);
-,/copy>
+</copy>
 ````
 
 verify that that FastStart is enabled.
