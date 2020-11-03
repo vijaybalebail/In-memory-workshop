@@ -19,7 +19,7 @@ Watch a preview video of querying the In-Memory Column Store
 It is clear by now that the IM column store can dramatically improve performance of all types of queries but very few database environments are read-only. For the IM column store to be truly effective in modern database environments it has to handle both bulk data loads AND online transaction processing (OLTP).
 We will test how the Oracle Database In-Memory is the only in-memory column store that can handle both bulk data loads and online transaction processing today.
 
-## Step 1: BLUK LOADS and In-Memory tables.
+## Step 1: BULK LOADS and In-Memory tables.
 Bulk data loads occur most commonly in Data Warehouse environments and are typically conducted as a direct path load. A direct path load parses the input data, converts the data for each input field to its corresponding Oracle data type, and then builds a column array structure for the data. These column array structures are used to format Oracle data blocks and build index keys. The newly formatted database blocks are then written directly to the database, bypassing the standard SQL processing engine and the database buffer cache.
 Once the load operation (direct path or non-direct path) has been committed, the IM column store is instantly aware it does not have all of the data populated for the object. The size of the missing data will be visible in the BYTES_NOT_POPULATED column of V$IM_SEGMENTS. If the object has a PRIORITY specified on it then the newly added data will be automatically populated into the IM column store. Otherwise the next time the object is queried, the background worker processes will be triggered to begin populating the missing data, assuming there is free space in the IM column store.
 
