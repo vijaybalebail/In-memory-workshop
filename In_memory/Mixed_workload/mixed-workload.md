@@ -261,7 +261,7 @@ Below are the observations from the above output:
   - DML RUN   : run queries while inserting 500 rows to lineorder and commiting after each row.
   - ALL       : run queries while, batch and DML operating are happening.
 
-  6. Setup the procedure as SSB.
+  6. create the  procedure as SSB that will query the SQLS.
 
   ````
   <copy>
@@ -325,6 +325,8 @@ commit ;
 end;
 </copy>
 ````
+7. Now run the PLSQL to run the Query  in the background while running BATCH, DML or both.
+
 ````
 <copy>
   DECLARE
