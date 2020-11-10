@@ -251,8 +251,9 @@ Below are the observations from the above output:
 
 
 
-## Step 2: In-Memory Indexing Storage Indexing
-  In the *Introduction and Overview*, we saw how min-max and dictionary based pruning could work as Index. We will now query the table and filter based on a where condition.
+## Step 3: In-Memory workload Query Performance.
+
+  In the previous section, we disused how In-Memory transparently loads data into In-Memory pool. In-memory operations are mainly
 
 5.  Let's look for a specific order in the LINEORDER table based on the order key.  Typically, a full table scan is not an efficient execution plan when looking for a specific entry in a table.  
 
