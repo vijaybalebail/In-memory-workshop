@@ -260,6 +260,71 @@ Below are the observations from the above output:
   - Batch RUN : run queries while, loading 10000 rows to Lineorder.
   - DML RUN   : run queries while inserting 500 rows to lineorder and commiting after each row.
   - ALL       : run queries while, batch and DML operating are happening.
+
+  6. Setup the procedure as SSB.
+
+  ````
+  <copy>
+  CREATE TABLE RUN_TIME
+(
+  ID NUMBER GENERATED ALWAYS AS IDENTITY, RUN_TYPE VARCHAR2(30) ,
+  QX CHAR(2) , QRUN_TIME NUMBER
+) ;
+
+create or replace procedure query_performance(run_type in varchar2, run_count in number)
+is
+t1 integer;
+t2 integer;
+t3 integer;
+t4 integer;
+c1 SYS_REFCURSOR;
+v_stmt_str1      VARCHAR2(200);
+v_stmt_str2      VARCHAR2(2000);
+v_stmt_str3      VARCHAR2(2000);
+lo_orderkey1     lineorder.lo_orderkey%type;
+lo_custkey1     lineorder.lo_custkey%type;
+lo_revenue1     lineorder.lo_revenue%type;
+begin
+
+v_stmt_str1 := 'select lo_orderkey, lo_custkey, lo_revenue from LINEORDER where lo_custkey = 5641 and lo_shipmode = ''XXX AIR'' and lo_orderpriority = ''5-LOW''';
+v_stmt_str2 := ' SELECT SUM(lo_extendedprice * lo_discount) revenue FROM   lineorder l,
+   date_dim d
+   WHERE  l.lo_orderdate = d.d_datekey
+   AND    l.lo_discount BETWEEN 2 AND 3
+   AND    l.lo_quantity < 24
+   AND    d.d_date=''December 24, 1996''';
+ v_stmt_str3 :=   'SELECT max(lo_ordtotalprice) most_expensive_order,
+sum(lo_quantity) total_items FROM lineorder';
+ for i in 1..run_count loop
+  open c1 for v_stmt_str1 ;
+  t1 := dbms_utility.get_time;
+
+  LOOP
+    FETCH c1 INTO lo_orderkey1,lo_custkey1, lo_revenue1;
+    EXIT WHEN c1%NOTFOUND ;
+  END LOOP;
+  close c1;
+  t2 :=  dbms_utility.get_time;
+  insert into run_time (run_type ,Qx ,qrun_time) values (run_type,'Q1',(t2-t1)/100);
+
+   open c1 for v_stmt_str2 ;
+    FETCH c1 INTO lo_orderkey1;
+   close c1;
+    t3 :=  dbms_utility.get_time;
+     insert into run_time (run_type ,Qx ,qrun_time) values (run_type,'Q2',(t3-t2)/100);
+
+   open c1 for v_stmt_str3 ;
+    FETCH c1 INTO lo_orderkey1, lo_revenue1;
+   close c1;
+    t4 :=  dbms_utility.get_time;  
+     insert into run_time (run_type ,Qx ,qrun_time) values (run_type,'Q3',(t4-t3)/100);
+
+   commit;  
+end loop ;
+commit ;
+end;
+</copy>
+````
 ````
 <copy>
   DECLARE
@@ -294,24 +359,20 @@ BEGIN
    WAIT_MACRO();
 
    BACKGROUND_QUERY('QRUN_BATCH');
-   EXECUTE IMMEDIATE 'insert /*+ ssappend */ into lineorder select * from lineorder2 where rownum <=10000';
+   EXECUTE IMMEDIATE 'insert /*+ append */ into lineorder select * from lineorder2 where rownum <=10000';
    commit;   
    WAIT_MACRO();
 
    BACKGROUND_QUERY('QRUN_DML');
    for c1 in ( select * from lineorder2 where rownum < 100 ) Loop
-      insert into lineorder values (c1."LO_ORDERKEY",c1.LO_LINENUMBER,c1.LO_CUSTKEY,c1.LO_PARTKEY,c1.LO_SUPPKEY,
-	   c1.LO_ORDERDATE,c1.LO_ORDERPRIORITY,c1.LO_SHIPPRIORITY,c1.LO_QUANTITY, c1.LO_EXTENDEDPRICE,c1.LO_ORDTOTALPRICE,
-	   c1.LO_DISCOUNT, c1.LO_REVENUE,c1.LO_SUPPLYCOST,c1.LO_TAX,c1.LO_COMMITDATE,c1.LO_SHIPMODE ) ;
+      insert into lineorder values (c1."LO_ORDERKEY",c1.LO_LINENUMBER,c1.LO_CUSTKEY,c1.LO_PARTKEY,c1.LO_SUPPKEY,c1.LO_ORDERDATE,c1.LO_ORDERPRIORITY,c1.LO_SHIPPRIORITY,c1.LO_QUANTITY, c1.LO_EXTENDEDPRICE,c1.LO_ORDTOTALPRICE,c1.LO_DISCOUNT, c1.LO_REVENUE,c1.LO_SUPPLYCOST,c1.LO_TAX,c1.LO_COMMITDATE,c1.LO_SHIPMODE ) ;
    end loop;
    commit;
    WAIT_MACRO();
 
    BACKGROUND_QUERY('QRUN_ALL');
    for c1 in ( select * from lineorder2 where rownum < 100 ) Loop
-      insert into lineorder values (c1."LO_ORDERKEY",c1.LO_LINENUMBER,c1.LO_CUSTKEY,c1.LO_PARTKEY,c1.LO_SUPPKEY,
-	   c1.LO_ORDERDATE,c1.LO_ORDERPRIORITY,c1.LO_SHIPPRIORITY,c1.LO_QUANTITY, c1.LO_EXTENDEDPRICE,c1.LO_ORDTOTALPRICE,
-	   c1.LO_DISCOUNT, c1.LO_REVENUE,c1.LO_SUPPLYCOST,c1.LO_TAX,c1.LO_COMMITDATE,c1.LO_SHIPMODE ) ;
+      insert into lineorder values (c1."LO_ORDERKEY",c1.LO_LINENUMBER,c1.LO_CUSTKEY,c1.LO_PARTKEY,c1.LO_SUPPKEY,c1.LO_ORDERDATE,c1.LO_ORDERPRIORITY,c1.LO_SHIPPRIORITY,c1.LO_QUANTITY, c1.LO_EXTENDEDPRICE,c1.LO_ORDTOTALPRICE,c1.LO_DISCOUNT, c1.LO_REVENUE,c1.LO_SUPPLYCOST,c1.LO_TAX,c1.LO_COMMITDATE,c1.LO_SHIPMODE ) ;
    end loop;
    commit;
    EXECUTE IMMEDIATE 'insert /*+ append * / into lineorder select * from lineorder2 where rownum <=10000';
