@@ -388,13 +388,14 @@ END;
 
 ## Conclusion
 
-In this lab you had an opportunity to try out Oracle’s In-Memory performance claims with queries that run against a table with over 23 million rows (i.e. LINEORDER), which resides in both the IM column store and the buffer cache. From a very simple aggregation, to more complex queries with multiple columns and filter predicates, the IM column store was able to out perform the buffer cache queries. Remember both sets of queries are executing completely within memory, so that’s quite an impressive improvement.
+In this lab you had an opportunity to try out Oracle’s In-Memory performance claims with queries that run against a table with over 23 million rows (i.e. LINEORDER), which resides in both the IM column store and the buffer cache. In Spite of running DML and BATCH jobs against LINEORDER table and querying the new data added, the performance was not affected. We can conclude that In-Memory operation not only improves query performance, but is not affected by DML or ETL jobs on the underlying table.
 
-These significant performance improvements are possible because of Oracle’s unique in-memory columnar format that allows us to only scan the columns we need and to take full advantage of SIMD vector processiong. We also got a little help from our new in-memory storage indexes, which allow us to prune out unnecessary data. Remember that with the IM column store, every column has a storage index that is automatically maintained for you.
+Remember, new data added as part of a bulk load operation is only visible after the session performing the DML commits. If the bulk load is done using a direct path operation, the data is written directly to disk and bypasses the buffer cache and the IM column store. The next query that accesses that data will trigger the newly inserted data to be populated into the column store, unless the table is configured with a non-default PRIORITY.
+Single row change done via the buffer cache (OLTP style changes), are typically committed immediately and are reflected in the column store as they occur. The buffer cache and the column store are kept transactionally consistent.
 
 ## Acknowledgements
 
-- **Author** - Vijay Balebail , Andy Rivenes
+- **Author** - Vijay Balebail, Maqsood Aalam .
 - **Last Updated By/Date** - Oct 2020.
 
 See an issue?  Please open up a request [here](https://github.com/oracle/learning-library/issues).
