@@ -253,7 +253,74 @@ Below are the observations from the above output:
 
 ## Step 3: In-Memory workload Query Performance.
 
-  In the previous section, we disused how In-Memory transparently loads data into In-Memory pool. In-memory operations are mainly
+  In the previous section, we disused how In-Memory transparently loads data into In-Memory pool. In-memory operations are mainly CPU and memory bond and have little Query Performance impact due to DML/ Bulk-Loads on the underlying table.
+  To demonstrate this, Run the following script.
+  The script will run 3 queries
+  - Base RUN  : run queries without any load.
+  - Batch RUN : run queries while, loading 10000 rows to Lineorder.
+  - DML RUN   : run queries while inserting 500 rows to lineorder and commiting after each row.
+  - ALL       : run queries while, batch and DML operating are happening.
+````
+<copy>
+  DECLARE
+  PROCEDURE wait_macro as
+  cnt1 number:=1;
+  BEGIN
+    while cnt1 >= 1 loop
+     dbms_lock.sleep (5);
+     SELECT count(1) into cnt1 FROM dba_scheduler_running_jobs srj
+     WHERE srj.job_name like 'QRUN%';
+   end loop;
+  end;
+  PROCEDURE BACKGROUND_QUERY ( job_name in varchar2) AS
+  BEGIN
+  Begin
+  dbms_scheduler.drop_job('JOB_NAME');
+  EXCEPTION WHEN OTHERS THEN NULL;
+  END ;
+  dbms_scheduler.create_job (
+    job_name => JOB_NAME,
+    job_type => 'PLSQL_BLOCK',
+    job_action => 'BEGIN QUERY_PERFORMANCE('''||job_name||''',400); END;',
+    auto_drop =>  TRUE,
+    enabled => true    
+   );
+  commit;
+  END;
+BEGIN
+  execute immediate 'truncate table run_time ';
+
+   BACKGROUND_QUERY('QRUN_BASE');
+   WAIT_MACRO();
+
+   BACKGROUND_QUERY('QRUN_BATCH');
+   EXECUTE IMMEDIATE 'insert /*+ ssappend */ into lineorder select * from lineorder2 where rownum <=10000';
+   commit;   
+   WAIT_MACRO();
+
+   BACKGROUND_QUERY('QRUN_DML');
+   for c1 in ( select * from lineorder2 where rownum < 100 ) Loop
+      insert into lineorder values (c1."LO_ORDERKEY",c1.LO_LINENUMBER,c1.LO_CUSTKEY,c1.LO_PARTKEY,c1.LO_SUPPKEY,
+	   c1.LO_ORDERDATE,c1.LO_ORDERPRIORITY,c1.LO_SHIPPRIORITY,c1.LO_QUANTITY, c1.LO_EXTENDEDPRICE,c1.LO_ORDTOTALPRICE,
+	   c1.LO_DISCOUNT, c1.LO_REVENUE,c1.LO_SUPPLYCOST,c1.LO_TAX,c1.LO_COMMITDATE,c1.LO_SHIPMODE ) ;
+   end loop;
+   commit;
+   WAIT_MACRO();
+
+   BACKGROUND_QUERY('QRUN_ALL');
+   for c1 in ( select * from lineorder2 where rownum < 100 ) Loop
+      insert into lineorder values (c1."LO_ORDERKEY",c1.LO_LINENUMBER,c1.LO_CUSTKEY,c1.LO_PARTKEY,c1.LO_SUPPKEY,
+	   c1.LO_ORDERDATE,c1.LO_ORDERPRIORITY,c1.LO_SHIPPRIORITY,c1.LO_QUANTITY, c1.LO_EXTENDEDPRICE,c1.LO_ORDTOTALPRICE,
+	   c1.LO_DISCOUNT, c1.LO_REVENUE,c1.LO_SUPPLYCOST,c1.LO_TAX,c1.LO_COMMITDATE,c1.LO_SHIPMODE ) ;
+   end loop;
+   commit;
+   EXECUTE IMMEDIATE 'insert /*+ append * / into lineorder select * from lineorder2 where rownum <=10000';
+   commit;
+   WAIT_MACRO();
+END;
+/
+</copy>
+````
 
 5.  Let's look for a specific order in the LINEORDER table based on the order key.  Typically, a full table scan is not an efficient execution plan when looking for a specific entry in a table.  
 
