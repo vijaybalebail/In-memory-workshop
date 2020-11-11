@@ -80,7 +80,7 @@ Now that you’ve gotten familiar with the IM column store let’s look at the b
       	IM scan CUs columns theoretical max = 748 is count of columns that would be accessed if each scan looked at all columns units (CUs) in all IMCUs for that column. However, the IMCUs actually accessed is <b>IM scan CUs memcompress for query low = 44</b>. This optimization is due to elimination of column access storing Min/Max info for each IMCU column structure.
     As the query did not have a filter, it was expected to scan all IMCUs and all CUs within the IMCU for the segment that is if there wouldn’t be column projection, but as you can see, only one column CU per IMCU is touched because of column projection. This is evident in the IM scan CU columns theoretical max value of 748 (44 IMCUs x 17 columns) from which IM scan CUs columns accessed are only 44 which happen to be the total IMCUs for 1 column.
 
-3.  To execute the same query against the buffer cache you will need to disable the IM column store via a hint called NO_INMEMORY or at session level and disable INMEMORY_QUERY.
+3.  To execute the same query against the buffer cache you will need to disable the IM column store via a hint called NO\_INMEMORY or at session level and disable INMEMORY\_QUERY.
 
     ````
     ALTER SESSION SET INMEMORY_QUERY= DIAABLE|ENABLE;
@@ -107,7 +107,7 @@ Now that you’ve gotten familiar with the IM column store let’s look at the b
     ````
     As you can see the query the performance of the query against the IM column store was significantly faster than the traditional buffer cache - why?  
 
-    The IM column store only has to scan two columns - lo_ordtotalprice and lo_quantity - while the row store has to scan all of the columns in each of the rows until it reaches the lo_ordtotalprice and lo_quantity columns. The IM column store also benefits from the fact that the data is compressed so the volume of data scanned is much less.  Finally, the column format requires no additional manipulation for SIMD vector processing (Single Instruction processing Multiple Data values). Instead of evaluating each entry in the column one at a time, SIMD vector processing allows a set of column values to be evaluated together in a single CPU instruction.
+    The IM column store only has to scan two columns - lo\_ordtotalprice and lo\_quantity - while the row store has to scan all of the columns in each of the rows until it reaches the lo\_ordtotalprice and lo\_quantity columns. The IM column store also benefits from the fact that the data is compressed so the volume of data scanned is much less.  Finally, the column format requires no additional manipulation for SIMD vector processing (Single Instruction processing Multiple Data values). Instead of evaluating each entry in the column one at a time, SIMD vector processing allows a set of column values to be evaluated together in a single CPU instruction.
 
     In order to confirm that the IM column store was used, we need to examine the session level statistics. Notice that in the INMEMORY run several IM statistics show up (for this lab we have only displayed some key statistics – there are lots more!). The only one we are really interested in now is the "IM scan CUs columns accessed" which highlights IM optimization to further improve performance.
 
@@ -134,7 +134,7 @@ Now that you’ve gotten familiar with the IM column store let’s look at the b
 
 
 
-6.  Think indexing lo_orderkey would provide the same performance as the IM column store? There is an invisible index already created on the lo_orderkey column of the LINEORDER table. By using the parameter OPTIMIZER_USE_INVISIBLE_INDEXES we can compare the performance of the IM column store and the index. Let's see how well the index performs.  
+6.  Think indexing lo\_orderkey would provide the same performance as the IM column store? There is an invisible index already created on the lo\_orderkey column of the LINEORDER table. By using the parameter OPTIMIZER\_USE\_INVISIBLE_INDEXES we can compare the performance of the IM column store and the index. Let's see how well the index performs.  
 
     ````
     <copy>
@@ -297,7 +297,7 @@ Up until now we have been focused on queries that scan only one table, the LINEO
 
    In this case, we noted above that three join filters have been created and applied to the scan of the LINEORDER table, one for the join to DATE_DIM table, one for the join to the PART table, and one for the join to the SUPPLIER table. How is Oracle able to apply three join filters when the join order would imply that the LINEORDER is accessed before the SUPPLER table?
 
-   This is where Oracle’s 30 plus years of database innovation kick in. By embedding the column store into Oracle Database we can take advantage of all of the optimizations that have been added to the database. In this case, the Optimizer has switched from its typically left deep tree to create a right deep tree using an optimization called ‘swap_join_inputs’. *Your instructor can explain ‘swap_join_inputs’ in more depth should you wish to know more. What this means for the IM column store is that we are able to generate multiple Bloom filters before we scan the necessary columns for the fact table, meaning we are able to benefit by eliminating rows during the scan rather than waiting for the join to do it.*
+   This is where Oracle’s 30 plus years of database innovation kick in. By embedding the column store into Oracle Database we can take advantage of all of the optimizations that have been added to the database. In this case, the Optimizer has switched from its typically left deep tree to create a right deep tree using an optimization called ‘swap\_join\_inputs’.
 
 ## Step 4: In-Memory Join Group
 
@@ -305,18 +305,21 @@ Up until now we have been focused on queries that scan only one table, the LINEO
 
     For the above example, we can create a In-Memory Join Group on the join column l.lo_orderdate = d.d_datekey.
     If you observe a HASH JOIN plan for inmemory, there are 2 operations. One is *JOIN FILTER CREATE* for  Bloom filter. The other is *JOIN FILTER USE* to consume it. Pre-creating the *Join Group* increases the performance of queries by using the prebuilt Join groups.
+   ```
+     <copy>
+     CREATE INMEMORY JOIN GROUP  JoinGroup (lineorder(lo_orderdate),date_dim (d_datekey)) ; </copy>
    ````
-     CREATE INMEMORY JOIN GROUP  JoinGroup (lineorder(lo_orderdate),date_dim (d_datekey)) ;
-   ````
+    This will improve query performance further and reduce CPU cycles to create JOIN FILTERS.
 
 ## Step 5: In-Memory Expressions
+
    In-Memory Expressions (IM expressions) provide the ability to materialize simple deterministic expressions and store them in the In-Memory column store (IM column store) so that they only have to be calculated once, not each time they are accessed. They are also treated like any other column in the IM column store so the database can scan and filter those columns and take advantage of all Database In-Memory query optimizations like SIMD vector processing and IM storage indexes.
 
    There are actually two types of IM expressions, a user-defined In-Memory virtual column (IM virtual column) that meets the requirements of an IM expression, and automatically detected IM expressions which are stored as a hidden virtual column when captured.
 
    ### 1. User-defined virtual column.
-
-   The automatically detected IM expressions are captured in the new Expression Statistics Store (ESS). IM expressions are fully documented in the In-Memory Guide.
+   Oracle tables support creation of virtual columns. They do not take any storage space and are computed during query. However, In-Memory can now store such columns. This will enable us to speed the query further by elimination of CPU cycles for queries.
+   The detected IM expressions are captured in the new Expression Statistics Store (ESS). IM expressions are fully documented in the In-Memory Guide.
 
 
  ````
@@ -336,6 +339,7 @@ Up until now we have been focused on queries that scan only one table, the LINEO
  </copy>
  ````
  And the session statistics does not have any IM Scan EU ... stats.
+
 
  Notice the following expression in the query:
 
@@ -415,7 +419,7 @@ Since 18c, there are 2 ways to capture the expressions automatically. They are e
 For the window function, we use dbms_inmemory_admin.ime_open_capture_window() to start.
 dbms_inmemory_admin.ime_close_capture_window() to stop capturing the inmemory expression and run
 dbms_inmemory_admin.ime_capture_expressions('WINDOW') to automatically generate automatic In-Memory expressions.
-The other alternative is to simple run dbms_inmemory_admin.ime_capture_expressions('CURRENT') which will capture the expressions from the shared pool.
+The other alternative is to run dbms_inmemory_admin.ime_capture_expressions('CURRENT') which will capture the expressions from the shared pool.
 
   ````
   <copy>
@@ -427,21 +431,45 @@ The other alternative is to simple run dbms_inmemory_admin.ime_capture_expressio
   GROUP BY lo_shipmode
   ORDER BY lo_shipmode;
   set timing off
-
-  dbms_inmemory_admin.ime_capture_expressions('CURRENT');
-
-  select * from table(dbms_xplan.display_cursor());
+  set autotrace off
 
   @../imstats.sql
   </copy>
   ````
-
+ Now capture the sql expressions from shared pool.
+  ````
+  <copy>
+  exec dbms_inmemory_admin.ime_capture_expressions('CURRENT');
+  </copy>
+  ````
 Now check if the expression is captured.
 ````
-  select
+COL OWNER FORMAT a6
+COL TABLE_NAME FORMAT a9
+COL COLUMN_NAME FORMAT a25
+SET LONG 50
+SET LINESIZE 150
+
+SELECT OWNER, TABLE_NAME, COLUMN_NAME, SQL_EXPRESSION
+FROM DBA_IM_EXPRESSIONS;
 ````
 
 Now rerun the query and verify you see "IM scan EU ..." instead on only "IM scan CU ..." statistics.
+````
+<copy>
+set timing on
+set autotrace traceonly
+SELECT lo_shipmode, SUM(lo_ordtotalprice),
+SUM(lo_ordtotalprice - (lo_ordtotalprice*(lo_discount/100)) + lo_tax) discount_price
+FROM LINEORDER
+GROUP BY lo_shipmode
+ORDER BY lo_shipmode;
+set timing off
+set autotrace off
+
+@../imstats.sql
+</copy>
+````
 
 ## Step 6: In-Memory Optimized Arithmetic
 
@@ -450,22 +478,12 @@ able to take advantage of the SIMD Vector processing units on CPUs
 
 ![](images\IMOptimizedArithmetic.png)
 
-In-Memory Optimized Arithmetic are available in 18c and encodes the NUMBER data type as a fixed-width native
-integer scaled by a common exponent. This enables faster calculations using SIMD hardware. The Oracle Database
-NUMBER data type has high fidelity and precision. However, NUMBER can incur a significant performance overhead
-for queries because arithmetic operations cannot be performed natively in hardware. The In-Memory optimized
-number format enables native calculations in hardware for segments compressed with the QUERY LOW compression
-option.
-Not all row sources in the query processing engine have support for the In-Memory optimized number format so the
-IM column store stores both the traditional Oracle Database NUMBER data type and the In-Memory optimized number
-type. This dual storage increases the space overhead, sometimes up to 15%.
-In-Memory Optimized Arithmetic is controlled by the initialization parameter INMEMORY_OPTIMIZED_ARITHMETIC.
-The parameter values are DISABLE (the default) or ENABLE. When set to ENABLE, all NUMBER columns for tables that
-use FOR QUERY LOW compression are encoded with the In-Memory optimized format when populated (in addition to
-12 | ORACLE DATABASE IN-MEMORY WITH ORACLE DATABASE 19C
-the traditional Oracle Database NUMBER data type). Switching from ENABLE to DISABLE does not immediately drop
-the optimized number encoding for existing IMCUs. Instead, that happens when the IM column store repopulates
-affected IMCUs.
+In-Memory Optimized Arithmetic are available in 18c and encodes the NUMBER data type as a fixed-width native integer scaled by a common exponent. This enables faster calculations using SIMD hardware. The Oracle Database NUMBER data type has high fidelity and precision. However, NUMBER can incur a significant performance overhead for queries because arithmetic operations cannot be performed natively in hardware. The In-Memory optimized
+number format enables native calculations in hardware for segments compressed with the QUERY LOW compression option.
+
+Not all row sources in the query processing engine have support for the In-Memory optimized number format so the IM column store stores both the traditional Oracle Database NUMBER data type and the In-Memory optimized number type. This dual storage increases the space overhead, sometimes up to 15%.
+
+In-Memory Optimized Arithmetic is controlled by the initialization parameter INMEMORY_OPTIMIZED_ARITHMETIC. The parameter values are DISABLE (the default) or ENABLE. When set to ENABLE, all NUMBER columns for tables that use FOR QUERY LOW compression are encoded with the In-Memory optimized format when populated (in addition to the traditional Oracle Database NUMBER data type). Switching from ENABLE to DISABLE does not immediately drop the optimized number encoding for existing IMCUs. Instead, that happens when the IM column store repopulates affected IMCUs.
 
 #### Set
 ````
