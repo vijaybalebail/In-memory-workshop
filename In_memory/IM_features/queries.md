@@ -167,12 +167,8 @@ Now that you’ve gotten familiar with the IM column store let’s look at the b
     set timing on
 
     select
-    lo_orderkey,
-    lo_custkey,
-    lo_revenue
-    from
-    LINEORDER
-    where
+    lo_orderkey, lo_custkey, lo_revenue
+    from LINEORDER where
     lo_custkey = 5641
     and lo_shipmode = 'XXX AIR'
     and lo_orderpriority = '5-LOW';
@@ -183,7 +179,7 @@ Now that you’ve gotten familiar with the IM column store let’s look at the b
 
     @../imstats.sql
 
-    exit
+
     </copy>
     ````
     You can see that the In-Memory SCAN  is used even when there is a INDEX on lo_orderkey. In fact, INMEMORY replaces multiple indexes on the Database.
@@ -388,7 +384,18 @@ select * from table(dbms_xplan.display_cursor());
 @../imstats.sql
 </copy>
 ````
-Notice the statistics that start with "IM scan EU ...". IM expressions are stored in the IM column store in In-Memory Expression Units (IMEUs) rather than IMCUs, and the statistics for accessing IM expressions all show "EU" for "Expression Unit".s
+Notice the statistics that start with "IM scan EU ...". IM expressions are stored in the IM column store in In-Memory Expression Units (IMEUs) rather than IMCUs, and the statistics for accessing IM expressions all show "EU" for "Expression Unit".
+
+You can also confirm that the virtual column is loaded looking up V$IM_IMECOL_CU view.
+
+````
+<copy>
+select o.owner,o.object_name,e.column_name,e.sql_expression,count( distinct e.imcu_addr) num_imeu
+from dba_objects o,V$IM_IMECOL_CU e where
+o.object_id=e.objd and o.owner='SSB' and o.object_name='LINEORDER'
+group by  o.owner,o.object_name,e.column_name,e.sql_expression;
+</copy>
+````
 
 This simple example shows that even relatively simple expressions can be computationally expensive, and the more frequently they are executed the more savings in CPU resources IM expressions will provide.
 
