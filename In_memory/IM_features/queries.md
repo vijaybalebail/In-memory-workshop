@@ -302,10 +302,10 @@ Up until now we have been focused on queries that scan only one table, the LINEO
 ## Step 4: In-Memory Join Group
 
    A new In-Memory feature called Join Groups was introduced with the Database In-Memory Option in Oracle Database 12.2.  Join Groups can be created to significantly speed up hash join performance in an In-Memory execution plan.  Creating a Join Group involves identifying up-front the set of join key columns (across any number of tables) likely to be joined with by subsequent queries.  
-
     For the above example, we can create a In-Memory Join Group on the join column l.lo_orderdate = d.d_datekey.
     If you observe a HASH JOIN plan for inmemory, there are 2 operations. One is *JOIN FILTER CREATE* for  Bloom filter. The other is *JOIN FILTER USE* to consume it. Pre-creating the *Join Group* increases the performance of queries by using the prebuilt Join groups.
-   ```
+
+   ````
      <copy>
      CREATE INMEMORY JOIN GROUP  JoinGroup (lineorder(lo_orderdate),date_dim (d_datekey)) ; </copy>
    ````
@@ -322,31 +322,29 @@ Up until now we have been focused on queries that scan only one table, the LINEO
    The detected IM expressions are captured in the new Expression Statistics Store (ESS). IM expressions are fully documented in the In-Memory Guide.
 
 
- ````
- <copy>
- set timing on
- set autotrace traceonly
- SELECT lo_shipmode, SUM(lo_ordtotalprice),
- SUM(lo_ordtotalprice - (lo_ordtotalprice*(lo_discount/100)) + lo_tax) discount_price
- FROM LINEORDER
- GROUP BY lo_shipmode
- ORDER BY lo_shipmode;
- set timing off
+   ````
+   <copy>
+   set timing on
+   SELECT lo_shipmode, SUM(lo_ordtotalprice),
+   SUM(lo_ordtotalprice - (lo_ordtotalprice*(lo_discount/100)) + lo_tax) discount_price
+   FROM LINEORDER
+   GROUP BY lo_shipmode ORDER BY lo_shipmode;
+   set timing off
 
- select * from table(dbms_xplan.display_cursor());
+   select * from table(dbms_xplan.display_cursor());
 
- @../imstats.sql
- </copy>
- ````
- And the session statistics does not have any IM Scan EU ... stats.
+   @../imstats.sql
+   </copy>
+   ````
+   And the session statistics does not have any IM Scan EU ... stats.
 
 
- Notice the following expression in the query:
+   Notice the following expression in the query:
 
-````
-(lo_ordtotalprice - (lo_ordtotalprice*(lo_discount/100)) + lo_tax)
+  ````
+  (lo_ordtotalprice - (lo_ordtotalprice*(lo_discount/100)) + lo_tax)
 
-````
+  ````
 
 This expression is simply an arithmetic expression to find the total price charged with discount and tax included, and is deterministic. We will create a virtual column and re-populate the LINEORDER table to see what difference it makes.
 
@@ -368,30 +366,29 @@ Next, we will add a virtual column to the LINEORDER table for the expression we 
 ````
 <copy>
 alter table lineorder no inmemory;
-alter table lineorder add v1 as (lo_ordtotalprice - (lo_ordtotalprice*(lo_discount/100)) + lo_tax)
+alter table lineorder add v1 as (lo_ordtotalprice - (lo_ordtotalprice*(lo_discount/100)) + lo_tax);
 alter table lineorder inmemory ;
 select /*+ noparallel */ count(*) from lineorder ;
-<\copy>
+</copy>
 ````
 
 Now let's re-run our query and see if there is any difference:
-````
-<copy>
-set timing on
-set autotrace traceonly
-SELECT lo_shipmode, SUM(lo_ordtotalprice),
-SUM(lo_ordtotalprice - (lo_ordtotalprice*(lo_discount/100)) + lo_tax) discount_price
-FROM LINEORDER
-GROUP BY lo_shipmode
-ORDER BY lo_shipmode;
-set timing off
+ ````
+ <copy>
+ set timing on
+ SELECT lo_shipmode, SUM(lo_ordtotalprice),
+ SUM(lo_ordtotalprice - (lo_ordtotalprice*(lo_discount/100)) + lo_tax) discount_price
+ FROM LINEORDER
+ GROUP BY lo_shipmode
+ ORDER BY lo_shipmode;
+ set timing off
 
 select * from table(dbms_xplan.display_cursor());
 
 @../imstats.sql
 </copy>
 ````
-Notice the statistics that start with "IM scan EU ...". IM expressions are stored in the IM column store in In-Memory Expression Units (IMEUs) rather than IMCUs, and the statistics for accessing IM expressions all show "EU" for "Expression Unit".
+Notice the statistics that start with "IM scan EU ...". IM expressions are stored in the IM column store in In-Memory Expression Units (IMEUs) rather than IMCUs, and the statistics for accessing IM expressions all show "EU" for "Expression Unit".s
 
 This simple example shows that even relatively simple expressions can be computationally expensive, and the more frequently they are executed the more savings in CPU resources IM expressions will provide.
 
@@ -470,6 +467,9 @@ set autotrace off
 @../imstats.sql
 </copy>
 ````
+
+   How to tell if the IM expression has actually been populated? There is another view, V$IM_IMECOL_CU that shows the columns populated and number of IMEUs they occupy.
+
 
 ## Step 6: In-Memory Optimized Arithmetic
 
