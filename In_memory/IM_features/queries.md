@@ -416,7 +416,8 @@ This simple example shows that even relatively simple expressions can be computa
  alter table lineorder no inmemory;
  ALTER TABLE lineorder DROP COLUMN v1;
  alter table lineorder inmemory ;
- select /*+ noparallel */ count(*) from lineorder ; </copy
+ select /*+ noparallel */ count(*) from lineorder ;
+ </copy>
  ````
 
 Since 18c, there are 2 ways to capture the expressions automatically. They are either during a window or current.
@@ -497,7 +498,6 @@ In-Memory Optimized Arithmetic is controlled by the initialization parameter INM
 SQL> <copy> show parameter INMEMORY_OPTIMIZED_ARITHMETIC
       alter system set INMEMORY_OPTIMIZED_ARITHMETIC=enable;
       show parameter INMEMORY_OPTIMIZED_ARITHMETIC </copy>
-      SQL> show parameter INMEMORY_OPTIMIZED_ARITHMETIC
 
       NAME                                 TYPE        VALUE
       ------------------------------------ ----------- ------------------------------
@@ -511,7 +511,7 @@ Now reload lineorder
 <copy>
 alter table lineorder no inmemory;
 alter table lineorder inmemory ;
-select /*+ noparallel */ count(*) from lineorder ; </copy
+select /*+ noparallel */ count(*) from lineorder ; </copy>
 ````
 
 
