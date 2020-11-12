@@ -40,7 +40,7 @@
             "title": "LAB 04 :In-Memory POC using Sql*Developer",
             "description":"Multitenant Application Containers",
             "publisheddate": "04/07/2020",
-            "filename":"./In_memory/sqlDev/InMemoryPOC.md"
+            "filename":"./In_memory/sqlDev/InmemoryPOC.md"
         }
 
     ]
