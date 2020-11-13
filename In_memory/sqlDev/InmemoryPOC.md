@@ -22,9 +22,13 @@ The major capability of the tool is
 
 ## Installation
 
-The SQL In-Memory tool is loaded as a User defined report in Sql\*Developer. You can download Sql\*Developer in the test environment.
-Download the XML file to the server you have
+The SQL In-Memory POC tool is loaded as a User defined report in Sql\*Developer. You can download Sql\*Developer in the test environment.
 
+Download the XML file from [your Browser](https://raw.githubusercontent.com/vijaybalebail/In-memory-workshop/master/In_memory/sqlDev/InMemoryPOC.xml) and save as a XML file.
+
+
+
+![](C:\Users\vbalebai.ORADEV\github\In-memory-workshop\In_memory\sqlDev\images\saveAs.png)
 
 
 
