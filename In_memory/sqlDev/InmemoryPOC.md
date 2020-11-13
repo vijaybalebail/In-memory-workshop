@@ -38,7 +38,16 @@ The SQL In-Memory POC tool is loaded as a User defined report in Sql\*Developer.
 3. In the reports window, Right click and select "Open Report". Open the xml file saved in step 1.
 ![](images/openReport.png)
 
-That is it. You have installed the In-Memory POC tool. Next, we we need to connect to the test environmen. 
+That is it. You have installed the In-Memory POC tool. Next, we we need to connect to the test environment.
+
+4. Ensure have a connection in Sql\*Developer as the user which is running the query.
+   To add a New Connection, you can click on the "+" icon on the upper left corner under connections window frame.
+    ![](images/newConnection.png)
+
+    You can add the connection information to connect. In our case, we will run Queries as SSB user for PDB orclpdb.
+    ![](images/SSBconnection.png)
+
+4. Expand the report
 
 And point to the XML file you downloaded.
 Once the POC reports are installed, create a connecting in sqlDeve as the use that is running the POC . Click on the Load Runstats Report.
