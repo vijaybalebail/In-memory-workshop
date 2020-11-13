@@ -1,21 +1,26 @@
-Oracle Inmemory is relatively new. There are many expert and novice DBAs alike who would like to test their application /SQL statements in- memory and In buffer and understand the inner workings. 
+# In-Memory Tool
 
-If we are doing a benchmark of Database with In-Memory enabled and disabled, it is not quiet obvious how Individual performance gains have contriduted to the overall performance, In this Lab, we will look at a tool to run individual queries and see how it behaves with In-Memory and without it.
+## Introduction
 
-   I have developed some simple reports like functionality using SQL *developer "user defined reports" .  The scripts can be plugged-in into any sql*developer and the user can quickly connect to the schema and run the monitoring and diagnostic reports.  
+Oracle In-Memory is relatively new. There are many expert and novice DBAs alike who would like to test their application SQL statements In-Memory and in buffer and understand the inner workings.
 
-The major capability of the tool is 
+If we are doing a benchmark of Database with In-Memory enabled and disabled, it is not quiet obvious how Individual performance gains have contributed to the overall performance, In this Lab, we will look at a tool to run individual queries and see how it behaves with In-Memory and without it.
 
-1)  to run any give sql statement in in-memory and in buffer cache and display the 2 different sql plans, and all the statistics that changed during the execution of the sql statement side-by-side. The unique features is that it can keep the same sql_id for the sql stament as the tool will not alter the statement in any way. (like adding a count(*) in front of the sql).  Also, it only fetches the first 10 rows and stops. this will ensure you are only counting the DB time and not network time to move large amount of data.
+The tool has been developed using Sql\*Developer "User defined reports". The scripts can be plugged-in to any Sql\*Developer and the user can quickly connect to the schema and run the monitoring and diagnostic reports.  
 
-2) It also has  provision to add multiple session level information to run statements like "alter session set nls_date_format ...;alter session..etc ".. This will help if the sql queries expect date to be of a certain format so that you need not add to_date syntax. Also, you can add other tunnable parameters like parallel degrees, 
+The major capability of the tool is
 
+1)  to run any give sql statement with in-memory ENABLED and  DISABLED and display the 2 different sql plans and stats. All the statistics that changed during the execution of the sql statement are displayed side-by-side. The unique features is that it can keep the same sql_id for the sql statment as the tool will not alter the statement in any way. (like adding a HINT or count in front of the sql).  Also, it only fetches the first 10 rows and stops. This will ensure you are only counting the DB time and not network time to move large amount of data.
 
-The tool will also be able to show sql monitor report if available, or show explain plan if DB did not generate a sql monitor report. . Sql monitor reports are favored by many for debugging if available. 
+2) It also has  provision to add multiple session level information to run statements like "alter session set nls\_date\_format ...;alter session....; " This will help if the sql queries expect date to be of a certain format so that you need not add to_date syntax. Also, you can add other tunable parameters like parallel degrees,APPROX\_FOR\_AGGREGATION,etc.
 
+3) Show barchart of execution times when run in Buffer and In-Memory.
 
+4) Show barchart of space it would occupy in buffer compared to In-Memory.
 
-INSTALLIn order to install the tool, you need to download the xml file which contains the scrits from here.
+5) Show Barchart of different memory pools in SGA and PieChart of memory used by In-Memory tables.
+
+## Installation and Loading Package.
 
 
 
