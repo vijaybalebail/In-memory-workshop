@@ -47,8 +47,57 @@ That is it. You have installed the In-Memory POC tool. Next, we we need to conne
     You can add the connection information to connect. In our case, we will run Queries as SSB user for PDB orclpdb.
     ![](images/SSBconnection.png)
 
-4. Expand the report
+5. Install DB objects.
+    In order for the tool to work, we need to install the following objects.
+	*   global temporary table called run_stats
+	*   view called stats
+	*   Plsql package called runstats_pkg
+
+ Expand the User Defined report what you opened earlier and click on Load Reunstats.
+ When you run in for the first time, you will get the following message displayed.
+
+ ````
+ As a sys user please grant access to following tables and run again
+grant select on SYS.V_$STATNAME to SSB;
+grant select on SYS.V_$MYSTAT to SSB;
+grant select on SYS.V_$TIMER to SSB;
+grant select on SYS.V_$LATCH to SSB;
+grant select on SYS.V_$SESSTAT to SSB;
+Table Created
+ORA-01031: insufficient privileges
+package recompiled in user SSB
+ORA-24344: success with compilation error
+````
+
+To add privileges, connect to sql\*plus session as sys and grant them.
+````
+<copy>
+connect / as sysdba
+alter session set container=ORCLPDB;
+grant select on SYS.V_$STATNAME to SSB;
+grant select on SYS.V_$MYSTAT to SSB;
+grant select on SYS.V_$TIMER to SSB;
+grant select on SYS.V_$LATCH to SSB;
+grant select on SYS.V_$SESSTAT to SSB;
+</copy>
+````
+After granting the privileges, re-run the "Load Runstats"
+After about 10 seconfs, you should get the following display.
+
+````
+temp table run_stats is already created
+view recreated
+package recompiled in user SSB
+Package body recompiled in user SSB
+You are ready to run the report
+````
+At this point, you have successfully imported the user defined report and installed the package.
+
+
+
 
 And point to the XML file you downloaded.
 Once the POC reports are installed, create a connecting in sqlDeve as the use that is running the POC . Click on the Load Runstats Report.
 The install will have created three objects:A global temporary table called run_statsA view called statsA plsql package called runstats_pkg
+
+## test sql query.
