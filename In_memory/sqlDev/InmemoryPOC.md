@@ -20,7 +20,7 @@ The major capability of the tool is
 
 5) Show Barchart of different memory pools in SGA and PieChart of memory used by In-Memory tables.
 
-## Installation
+## Install
 
 The SQL In-Memory POC tool is loaded as a User defined report in Sql\*Developer. You can download Sql\*Developer in the test environment.
 
@@ -100,4 +100,17 @@ And point to the XML file you downloaded.
 Once the POC reports are installed, create a connecting in sqlDeve as the use that is running the POC . Click on the Load Runstats Report.
 The install will have created three objects:A global temporary table called run_statsA view called statsA plsql package called runstats_pkg
 
-## test sql query.
+## Verify the objects are Loaded.
+Click on the report "in-memory-objects"
+This displays the tables that have the property INMEMORY setup and loaded into In-Memory pool. In our test ensure you see LINEORDER,PART,CUSTOMER,DATE_DIM,SUPPLIER. If there are not show here, you can run the report "Load all inmemory tables".
+
+![](images/objectSizeBar.png)
+
+The chart shows the space it used in In-Memory compared to space occupied in buffer. Notice, that space in In-Memory is less than in buffer. Further, due to various compression levels, you could tune the compression level to fill the pool more economically.
+
+Now that the tool is installed, Click on "In-Memory Query vs  Buffer Cache".
+In the popup , enter the following query to see the performance difference, SQL Plan and stats.
+
+````
+ T
+````
