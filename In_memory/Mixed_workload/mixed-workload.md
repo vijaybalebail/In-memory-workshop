@@ -397,5 +397,3 @@ Single row change done via the buffer cache (OLTP style changes), are typically 
 
 - **Author** - Vijay Balebail, Maqsood Aalam .
 - **Last Updated By/Date** - Oct 2020.
-
-See an issue?  Please open up a request [here](https://github.com/oracle/learning-library/issues).
