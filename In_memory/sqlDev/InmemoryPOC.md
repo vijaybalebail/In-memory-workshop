@@ -24,13 +24,21 @@ The major capability of the tool is
 
 The SQL In-Memory POC tool is loaded as a User defined report in Sql\*Developer. You can download Sql\*Developer in the test environment.
 
-Download the XML file from [your Browser](https://raw.githubusercontent.com/vijaybalebail/In-memory-workshop/master/In_memory/sqlDev/InMemoryPOC.xml) and save as a XML file.
+1. Download the XML file from [your Browser](https://raw.githubusercontent.com/vijaybalebail/In-memory-workshop/master/In_memory/sqlDev/InMemoryPOC.xml) and save as a XML file.
 
 
 
-![](C:\Users\vbalebai.ORADEV\github\In-memory-workshop\In_memory\sqlDev\images\saveAs.png)
+![](images/saveAs.png)
 
 
+
+2. Open Sql*Developer Click on Views--> reports
+![](images/viewReports.png)
+
+3. In the reports window, Right click and select "Open Report". Open the xml file saved in step 1.
+![](images/openReport.png)
+
+That is it. You have installed the In-Memory POC tool. Next, we we need to connect to the test environmen. 
 
 And point to the XML file you downloaded.
 Once the POC reports are installed, create a connecting in sqlDeve as the use that is running the POC . Click on the Load Runstats Report.
