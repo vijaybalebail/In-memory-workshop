@@ -67,7 +67,7 @@ Table Created
 ORA-01031: insufficient privileges
 package recompiled in user SSB
 ORA-24344: success with compilation error
-````
+ ````
 
 To add privileges, connect to sql\*plus session as sys and grant them.
 ````
@@ -82,7 +82,7 @@ grant select on SYS.V_$SESSTAT to SSB;
 </copy>
 ````
 After granting the privileges, re-run the "Load Runstats"
-After about 10 seconfs, you should get the following display.
+After about 10 seconds, you should get the following display.
 
 ````
 temp table run_stats is already created
