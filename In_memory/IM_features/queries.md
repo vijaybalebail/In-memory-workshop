@@ -205,8 +205,8 @@ Up until now we have been focused on queries that scan only one table, the LINEO
 
 2. Join the LINEORDER and DATE_DIM tables in a "What If" style query that calculates the amount of revenue increase that would have resulted from eliminating certain company-wide discounts in a given percentage range for products shipped on a given day (Christmas eve 1996).  In the first one, execute it against the IM column store.  
 
-   ````
-   <copy>
+````
+  <copy>
    set timing on
    set pages 9999
    set lines 100
@@ -225,7 +225,7 @@ Up until now we have been focused on queries that scan only one table, the LINEO
 
    @../imstats.sql
    </copy>
-   ````
+````
 
    ![](images/num2.png)
 

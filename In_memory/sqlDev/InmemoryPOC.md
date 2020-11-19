@@ -263,8 +263,15 @@ and lo_orderpriority = '5-LOW'; </copy>
     workarea memory allocated............... |             11 |            -13
     ###########################################################################
  ````
+ From the report generated, observe the SQL PLAN operation "*TABLE ACCESS INMEMORY FULL*" for INMEMORY plan and "*TABLE ACCESS FULL*" For table scan operation.
 
-SELECT /*+ 1VECTOR_TRANSFORM */ d.d_year,  p.p_brand1,SUM(lo_revenue) rev
+ Next, You can look at the relevant DB stats to see the optimizations.
+
+ Note that the first time you run of the query, it might appear slower as the runstat package may not be in the shared pool.
+Rerun the report again and compare.
+
+
+SELECT /*+ 11VECTOR_TRANSFORM */ d.d_year,  p.p_brand1,SUM(lo_revenue) rev
 FROM   lineorder l,
     date_dim d,
     part p,
