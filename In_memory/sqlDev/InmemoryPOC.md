@@ -270,6 +270,11 @@ and lo_orderpriority = '5-LOW'; </copy>
  Note that the first time you run of the query, it might appear slower as the runstat package may not be in the shared pool.
 Rerun the report again and compare.
 
+Some sql queries will need to set session parameters like Parallel Degree, Hint and invisible indexes, optimizer tuning parameters and NLS date formats. We already tested one query by enabling invisible index in our test. We can now
+
+## Top InmemorySQL report
+
+![](images/topSQLwithInMemory.png)
 
 SELECT /*+ 11VECTOR_TRANSFORM */ d.d_year,  p.p_brand1,SUM(lo_revenue) rev
 FROM   lineorder l,
