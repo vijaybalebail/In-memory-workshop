@@ -54,7 +54,20 @@ Note :  The default install of database usually set a parameter MEMORY_TARGET wh
     startup;
     </copy>
     ````
+    ````
+    SQL> ORACLE instance started.
 
+    Total System Global Area 1.0033E+10 bytes
+    Fixed Size                  9160168 bytes
+    Variable Size            1275068416 bytes
+    Database Buffers         6593445888 bytes
+    Redo Buffers                7614464 bytes
+    In-Memory Area           2147483648 bytes
+
+    Database mounted.
+    Database opened.
+    ````
+    Note that during startup, you will see the *In-Memory Area* and the size of the pool.
 
 5.  Now let's take a look at the parameters.
 
@@ -62,8 +75,6 @@ Note :  The default install of database usually set a parameter MEMORY_TARGET wh
     <copy>
     show sga;
     show parameter inmemory;
-    show parameter keep;
-    exit
     </copy>
     ````
 
@@ -74,7 +85,7 @@ The Oracle environment is already set up so sqlplus can be invoked directly from
 1.  Login to the pdb as the SSB user.  
     ````
     <copy>
-    sqlplus ssb/Ora_DB4U@localhost:1521/orclpdb
+    connect ssb/Ora_DB4U@localhost:1521/orclpdb    
     set pages 9999
     set lines 200
     </copy>
@@ -121,12 +132,14 @@ The Oracle environment is already set up so sqlplus can be invoked directly from
      SELECT INMEMORY, INMEMORY_PRIORITY, INMEMORY_COMPRESSION, INMEMORY_DISTRIBUTE,
      INMEMORY_DUPLICATE FROM USER_TABLES WHERE TABLE_NAME = 'BONUS';
      </copy>
+     ````
+     ````
+     SQL>  SELECT INMEMORY, INMEMORY_PRIORITY, INMEMORY_COMPRESSION, INMEMORY_DISTRIBUTE,
+     INMEMORY_DUPLICATE FROM USER_TABLES WHERE TABLE_NAME = 'BONUS';  2
 
-
-      INMEMORY INMEMORY INMEMORY_COMPRESS INMEMORY_DISTRI INMEMORY_DUPL
-      -------- -------- ----------------- --------------- -------------
-      ENABLED  NONE     FOR QUERY LOW     AUTO            NO DUPLICATE
-
+     INMEMORY INMEMORY INMEMORY_COMPRESS INMEMORY_DISTRI INMEMORY_DUPL
+     -------- -------- ----------------- --------------- -------------
+     ENABLED  NONE     FOR QUERY LOW     AUTO            NO DUPLICATE
      ````
 
    As you can observer, When we enable a table with INMEMORY, the INMEMORY PRIORITY is NONE and the COMPRESSION is set to *FOR QUERY LOW*.
@@ -200,7 +213,7 @@ The Oracle environment is already set up so sqlplus can be invoked directly from
       ````
 
 
-9. Background processes are populating these segments into the IM column store.  To monitor this, you could query the V$IM_SEGMENTS.  Once the data population is complete, the BYTES_NOT_POPULATED should be 0 for each segment.  
+9. Background processes are populating these segments into the IM column store.  To monitor this, you could query the V$IM\_SEGMENTS.  Once the data population is complete, the BYTES\_NOT\_POPULATED should be 0 for each segment.  
 
     ````
     <copy>
@@ -428,7 +441,7 @@ PLAN_TABLE_OUTPUT
 -------------------------------------------------------------------------------
 
 ````
-Notice that tha plan changed from *EXTERNAL TABLE ACCESS FULL* to *EXTERNAL TABLE ACCESS INMEMORY FULL*.
+Notice that tha plan changed from *TABLE ACCESS FULL* to *EXTERNAL TABLE ACCESS INMEMORY FULL*.
 Note that if you append data to the external file, you will have to repopulate to In-Memory.
 
 ## Step 5: In-Memory FastStart
@@ -474,4 +487,4 @@ To Disable In-Memory FastStart , run the following.
 ````
 exec DBMS_INMEMORY_ADMIN.FASTSTART_DISABLE();
 ````
-We have looked at how we can configure In-Memory pool and Tables and how to load them. Next we will look at some of the optimizations to speed up queries.
+We have looked at how we can configure In-Memory pool. Alter table InMemory properties and how to load them. Next we will look at some of the optimizations to speed up queries.

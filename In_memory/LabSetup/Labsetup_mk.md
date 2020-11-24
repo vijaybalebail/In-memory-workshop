@@ -11,7 +11,11 @@ Your instructor will provide you with both a **Virtual Machine IP address** and 
 
 Each lab participant will be provided a unique **IP address** and a download link to a **SSH secure key file**
 
-## Windows Users: Connect using Putty
+## Connect to server with ssh key
+  By now, you have the IP address and the SSH to remote login to the server. You can connect to the provisioned server from Windows Putty tool, Windows Powershell or from MAC notebook.
+  The Sql\*Developer lab requirs you a GUI. To complete that lab, you can either install Sql\*Developer on the laptop or use remote Desktop to it.
+
+### Windows Users: Connect using Putty
 
 1.  Download and **[Install Putty](https://www.putty.org/)** and then open the PuTTY utility from the Windows start menu.   In the **Host Name dialog box**, enter the IP Address of your OCI Compute Instance.  This will be provided from your instructor.
 
@@ -39,7 +43,7 @@ Each lab participant will be provided a unique **IP address** and a download lin
 
 You are now able to connect securely using the Putty terminal utility.
 
-## Windows Users: Connect using ssh with Windows PowerShell
+### Windows Users: Connect using ssh with Windows PowerShell
 
 Windows 10 users can use Windows PowerShell to run the workshop.
 
@@ -57,7 +61,7 @@ ssh -i c:\Users\name\Downloads\MT-WS-key.priv oracle@168.xxx.xx.xxx
 
 You are now connected securely using your Windows PowerShell utility.
 
-## Mac Users: Connect using ssh
+### Mac Users: Connect using ssh
 
 Mac users typically use their favorite terminal (Terminal.app, iTerm, etc) to run the workshop.
 
@@ -75,3 +79,15 @@ ssh -i MT-WS-key.priv oracle@168.xxx.xx.xxx
 ![](./images/MACsetup.png " ")
 
 You are now connected securely using your Mac terminal utility.
+
+## Workshop Lap Setup.
+
+Run this command to setup the schema, SSB, you will use for this lab. This script takes about 15 minutes to complete. It downloads the ssb.dmp file and then imports it.
+````
+<copy>
+cd /home/opc/
+wget https://objectstorage.us-ashburn-1.oraclecloud.com/p/axp5T8m0cF0_p1N832Qo6ImwczP_V6bSQi9ABLti6Ug/n/c4u03/b/labfiles/o/inmemoryscript.sh
+chmod +x /home/opc/inmemoryscript.sh
+nohup /home/opc/inmemoryscript.sh &> setupinmem.out&
+</copy>
+````
