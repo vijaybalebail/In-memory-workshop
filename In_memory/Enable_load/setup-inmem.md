@@ -411,7 +411,7 @@ SSB        EXT_EMP              COMPLETED              3
 We need to set  QUERY\_REWRITE\_INTEGRITY = STALE_TOLERATED in order for the optimizer to query table from In-Memory.
 
 ````
-copy>
+<copy>
 conn ssb/Ora_DB4U@orclpdb
 set linesize 200
 set pages 10
