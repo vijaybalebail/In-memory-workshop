@@ -77,8 +77,15 @@ Now that you’ve gotten familiar with the IM column store let’s look at the b
     session pga memory                                             12779928
     table scans (IM)                                                      1
     ````
-      	IM scan CUs columns theoretical max = 748 is count of columns that would be accessed if each scan looked at all columns units (CUs) in all IMCUs for that column. However, the IMCUs actually accessed is <b>IM scan CUs memcompress for query low = 44</b>. This optimization is due to elimination of column access storing Min/Max info for each IMCU column structure.
-    As the query did not have a filter, it was expected to scan all IMCUs and all CUs within the IMCU for the segment that is if there wouldn’t be column projection, but as you can see, only one column CU per IMCU is touched because of column projection. This is evident in the IM scan CU columns theoretical max value of 748 (44 IMCUs x 17 columns) from which IM scan CUs columns accessed are only 44 which happen to be the total IMCUs for 1 column.
+
+    "IM scan CUs columns theoretical max = 748" is count of columns that would be accessed if each scan looked at all columns units (CUs) in all IMCUs for that column.
+    There are 17 columns in the table LINEORDER.
+    Each column data is held in 748/17 = 44 IMCUs. This information is in "IM scan CUs memcompress for query low".
+
+    However, the IMCUs actually accessed is 88. This is because we accessed 2 columns in the query. (2 *44 =88)
+
+    If the query had a filter condition , then those CUs would have been accessed too.
+
 
 3.  To execute the same query against the buffer cache you will need to disable the IM column store via a hint called NO\_INMEMORY or at session level and disable INMEMORY\_QUERY.
 
@@ -153,7 +160,7 @@ Now that you’ve gotten familiar with the IM column store let’s look at the b
     @../imstats.sql
     </copy>
     ````
-    We observe that , when index is available on the filter column of the query, the optimizer chose INDEX SCAN over INMEMORY FULL TABLE SCAN.
+    We observe that , when index is available on the filter column of the query, the optimizer chose INDEX RANGE SCAN over INMEMORY FULL TABLE SCAN. In a POC, it is possible not get the expected improvements from InMemory if all the queries are well tuned and indexes.
 
 
 7.  Analytical queries have more than one equality WHERE clause predicate. What happens when there are multiple single column predicates on a table? Traditionally you would create a multi-column index. Can storage indexes compete with that?  
@@ -192,13 +199,13 @@ Now that you’ve gotten familiar with the IM column store let’s look at the b
 
 Up until now we have been focused on queries that scan only one table, the LINEORDER table. Let’s broaden the scope of our investigation to include joins and parallel execution. This section executes a series of queries that begin with a single join between the  fact table, LINEORDER, and a dimension table and works up to a 5 table join. The queries will be executed in both the buffer cache and the column store, to demonstrate the different ways the column store can improve query performance above and beyond the basic performance benefits of scanning data in a columnar format.
 
-1. Let's switch to the Part2 folder and log back in to the PDB.
+8. Let's switch to the Part2 folder and log back in to the PDB.
 
    ````
    <copy>
 
    sqlplus ssb/Ora_DB4U@localhost:1521/orclpdb
-   <copy>    
+   </copy>    
    ````
 
    ![](images/num1.png)
