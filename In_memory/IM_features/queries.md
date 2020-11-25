@@ -7,7 +7,7 @@
 
 Watch a preview video of querying the In-Memory Column Store
 
-[](youtube:U9BmS53KuGs)
+[](youtube:eToO3PRIs8k)
 
 ## Step 1: Querying the In-Memory Column Store
 
