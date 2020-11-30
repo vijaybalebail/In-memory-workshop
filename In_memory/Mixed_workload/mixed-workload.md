@@ -167,11 +167,11 @@ AND n.DISPLAY_NAME IN (
 'IM transactions',
 'IM transactions rows journaled'); </copy>
 
-DISPLAY_NAME					      VALUE
+DISPLAY_NAME					                       VALUE
 ------------------------------------------   --------
-IM transactions 					  	    2
-IM transactions rows journaled		      11000
-IM populate segments requested  			    1
+IM transactions 					  	                2
+IM transactions rows journaled		            11000
+IM populate segments requested  			        1
 ````
 	From the above output, the IM transactions are now incremented to 2 (one additional due to the recent COMMIT) and the number of IM transactions rows journaled are now 11000 (reflecting the newly added 1000 rows on top of 10000).
 
