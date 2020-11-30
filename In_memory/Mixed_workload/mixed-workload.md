@@ -2,11 +2,11 @@
 
 ## Introduction
 
-In a OLTP production environment, it is common to expect the datbase to run 1000s of transactions with very little toleration to poor throughput. In such environments, It is a common strategy to make a redundant copy of data in a data wherehouse system where analytic queries are run.
+In a OLTP production environment, it is common to expect the datbase to run 1000s of transactions with very little toleration to poor throughput. In such environments, running reports and analitical queries can take a lot of resources and can bring down the throughput of the system. In such cases, it is a common strategy to make a redundant copy of data in a data wherehouse system where analytic queries are run.
 
-Also, if there are reports running of OLTp production database, we usually have several indexes on ensure that the reports run efficiently and not cause some unexpected heavy load on the OTLP system. More indexes we have in a OLTP system, the slower the DML operations happens due to the extra operations and logging of INSERT,DELETE operations on the underlying indexes.
+Also, if there are reports running of OLTP production database, we usually have several indexes on ensure that the reports run efficiently and not cause some unexpected heavy load on the OTLP system. More indexes we have in a OLTP system, the slower the DML operations happens due to the extra operations and logging of INSERT,DELETE operations on the underlying indexes. A simple update of a row has to drop and insert data to the corresponding indexes. Insert of a row into the table will also have to insert data into all the indexes of that table.
 
- Now with in-memory , these queries can run without the need of additional reporting indexes. This helps in reducing the storage space and also improve performance of DML operations.
+ Now with in-memory , these queries can run without the need of additional reporting indexes. The amount of CPU cycles needed to query the data for reporting is less. This helps to improve throughput of DML operations by elimination of indexes. At the same time reports run faster.
 
  ![](../images/lessIndexs.png)
 
@@ -20,7 +20,7 @@ It is clear by now that the IM column store can dramatically improve performance
 We will test how the Oracle Database In-Memory is the only in-memory column store that can handle both bulk data loads and online transaction processing today.
 
 ## Step 1: BULK LOADS and In-Memory tables.
-Bulk data loads occur most commonly in Data Warehouse environments and are typically conducted as a direct path load. A direct path load parses the input data, converts the data for each input field to its corresponding Oracle data type, and then builds a column array structure for the data. These column array structures are used to format Oracle data blocks and build index keys. The newly formatted database blocks are then written directly to the database, bypassing the standard SQL processing engine and the database buffer cache.
+Bulk data loads occur most commonly in Data Warehouse environments and are typically use direct path load. A direct path load parses the input data, converts the data for each input field to its corresponding Oracle data type, and then builds a column array structure for the data. These column array structures are used to format Oracle data blocks and build index keys. The newly formatted database blocks are then written directly to the database, bypassing the standard SQL processing engine and the database buffer cache.
 Once the load operation (direct path or non-direct path) has been committed, the IM column store is instantly aware it does not have all of the data populated for the object. The size of the missing data will be visible in the BYTES_NOT_POPULATED column of V$IM_SEGMENTS. If the object has a PRIORITY specified on it then the newly added data will be automatically populated into the IM column store. Otherwise the next time the object is queried, the background worker processes will be triggered to begin populating the missing data, assuming there is free space in the IM column store.
 
 
@@ -135,12 +135,9 @@ FROM V$IM_SEGMENTS_DETAIL b, DBA_OBJECTS a
 WHERE a.DATA_OBJECT_ID = b.DATAOBJ
 AND a.OBJECT_NAME =  'PART1'; </copy>
 
-SQL> COL OBJECT_NAME FORMAT A10
-SQL> SELECT a.OBJECT_NAME, b.MEMBYTES, b.EXTENTS, b.BLOCKS, b.DATABLOCKS, b.BLOCKSINMEM, b.BYTES FROM V$IM_SEGMENTS_DETAIL b, DBA_OBJECTS a WHERE a.DATA_OBJECT_ID = b.DATAOBJ AND a.OBJECT_NAME =  'PART1';
-
-OBJECT_NAM   MEMBYTES	 EXTENTS     BLOCKS DATABLOCKS BLOCKSINMEM BYTES
+OBJECT_NAM   MEMBYTES	 EXTENTS   BLOCKS     DATABLOCKS BLOCKSINMEM BYTES
 ---------- ---------- ---------- ---------- ---------- ----------- ------
-PART1	  1179648	       7	     56	    50	    50 458752
+PART1	     1179648	       7	     56	      50	       50          458752
 ````
 
 	From the above output, observe that PART1 so far has 7 extents, 56 allocated on-disk blocks (BLOCKS) and 50 used blocks (DATABLOCKS), out of which all 50 have been loaded to the IM column store (BLOCKSINMEM).
@@ -148,9 +145,9 @@ PART1	  1179648	       7	     56	    50	    50 458752
 
 ## Step 2: DML and In-Memory tables
 
-In this scenario, you will load a few additional rows into SALES1 and observe the column store population.
+In this scenario, you will load a few additional rows into PART1 and observe the column store population.
 
-1.	Load a few rows into SALES1 via IAS (Insert as Select). Commit the changes so they become visible to the IM column store.
+1.	Load a few rows into PART1 via IAS (Insert as Select). Commit the changes so they become visible to the IM column store.
 ````
 <copy>
 INSERT INTO part1
