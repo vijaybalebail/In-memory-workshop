@@ -2,11 +2,25 @@
 
 ## Introduction
 
-In a OLTP production environment, it is common to expect the datbase to run 1000s of transactions with very little toleration to poor throughput. In such environments, running reports and analitical queries can take a lot of resources and can bring down the throughput of the system. In such cases, it is a common strategy to make a redundant copy of data in a data wherehouse system where analytic queries are run.
+In a OLTP production environment, it is common to expect the datbase to run 1000s of transactions with very little toleration to poor throughput. In such environments, running reports and analytical queries can take a lot of resources and can bring down the throughput of the system. In such cases, it is a common strategy to make a redundant copy of data in a data warehouse system where analytic queries are run.
 
-Also, if there are reports running of OLTP production database, we usually have several indexes on ensure that the reports run efficiently and not cause some unexpected heavy load on the OTLP system. More indexes we have in a OLTP system, the slower the DML operations happens due to the extra operations and logging of INSERT,DELETE operations on the underlying indexes. A simple update of a row has to drop and insert data to the corresponding indexes. Insert of a row into the table will also have to insert data into all the indexes of that table.
+If there are reports running on OLTP production database, we usually have several indexes on ensure that the reports run efficiently and not cause some unexpected heavy load on the OTLP system. More indexes we have in a OLTP system, the slower the DML operations happens due to the extra operations and logging of INSERT,DELETE operations on the underlying indexes. A simple update of a row has to drop and insert data to the corresponding indexes. Insert of a row into the table will also have to insert data into all the indexes of that table.
 
  Now with in-memory , these queries can run without the need of additional reporting indexes. The amount of CPU cycles needed to query the data for reporting is less. This helps to improve throughput of DML operations by elimination of indexes. At the same time reports run faster.
+
+### What happens to the Memory structure when we do DML operations on the underlying table ?
+the IM column store is always transactionally consistent with the data on disk. This is done through 2 background activities.
+
+ - <b>Repopulation of the IM Column Store :</b> The automatic refresh of columnar data after significant modifications is called repopulation. When DML occurs for objects in the IM column store, the database repopulates them automatically.
+ Automatic repopulation takes the following forms:
+  - threshold-based repopulation : This form depends on the percentage of stale entries in the transaction journal for an IMCU.
+
+  - trickle repopulation : This form supplements threshold-based repopulation by periodically refreshing columnar data even when the staleness threshold has not been reached.
+
+ During automatic repopulation, traditional access mechanisms are available. Data is always accessible from the buffer cache or disk. Additionally, the IM column store is always transactionally consistent with the data on disk. No matter where the query accesses the data, the database always returns consistent results.
+
+
+ - <b>Row Modifications and the Transaction Journal :</b> An In-Memory Compression Unit (IMCU) is a read-only structure that does not modify data in place when DML occurs on an internal table. The Snapshot Metadata Unit (SMU) associated with each IMCU tracks row modifications in a transaction journal. If a query accesses the data, and discovers modified rows, then it can obtain the corresponding rowids from the transaction journal, and then retrieve the modified rows from the buffer cache. As the number of modifications increase, so do the size of SMUs, and the amount of data that must be fetched from the transaction journal or database buffer cache. To avoid degrading query performance through journal access, background processes repopulate modified objects.
 
  ![](../images/lessIndexs.png)
 
@@ -16,8 +30,8 @@ Watch a preview video of querying the In-Memory Column Store
 
 ###  DML and In-Memory tables
 
-It is clear by now that the IM column store can dramatically improve performance of all types of queries but very few database environments are read-only. For the IM column store to be truly effective in modern database environments it has to handle both bulk data loads AND online transaction processing (OLTP).
-We will test how the Oracle Database In-Memory is the only in-memory column store that can handle both bulk data loads and online transaction processing today.
+It is clear by now that the IM column store can dramatically improve performance of all types of queries but very few database environments are read-only. For the IM column store to be truly effective in modern database environments it has to handle both analytical reports AND online transaction processing (OLTP).
+We will test how the Oracle Database In-Memory is the only in-memory column store that can handle both Analytical queries  and online transaction processing today.
 
 ## Step 1: BULK LOADS and In-Memory tables.
 Bulk data loads occur most commonly in Data Warehouse environments and are typically use direct path load. A direct path load parses the input data, converts the data for each input field to its corresponding Oracle data type, and then builds a column array structure for the data. These column array structures are used to format Oracle data blocks and build index keys. The newly formatted database blocks are then written directly to the database, bypassing the standard SQL processing engine and the database buffer cache.
@@ -25,160 +39,145 @@ Once the load operation (direct path or non-direct path) has been committed, the
 
 
 1.	Using SQL*Plus, connect as LABUSER.
-   ````
-   <copy> CONNECT  ssb/Ora_DB4U@localhost:1521/orclpdb </copy>
-   ````
+     ````
+     <copy> CONNECT  ssb/Ora_DB4U@localhost:1521/orclpdb </copy>
+     ````
 
 2.	Create a new SALES1 table as an empty copy of PART with INMEMORY .
-````
-<copy> CREATE TABLE PART1 INMEMORY AS SELECT * FROM  PART WHERE 1=2; </copy>
-````
+    ````
+    <copy> CREATE TABLE PART1 INMEMORY AS SELECT * FROM  PART WHERE 1=2; </copy>
+    ````
 
 3.	Load data into PART1 via a bulk load operation (non-direct path). Do NOT COMMIT the transaction yet.
-````
-<copy> INSERT INTO PART1
-SELECT * FROM PART WHERE ROWNUM <=10000;
- </copy>
-````
-4.	Check if the SALES1 table got populated into the IM column store by querying V$IM_SEGMENTS. What do you observe?
-````
-<copy> SELECT * FROM V$IM_SEGMENTS WHERE SEGMENT_NAME = 'PART1';
- </copy>
-````
-````
-SQL> SELECT * FROM V$IM_SEGMENTS WHERE SEGMENT_NAME = 'PART1';
 
-no rows selected
-````
+    ````
+    <copy>
+     INSERT INTO PART1 SELECT * FROM PART WHERE ROWNUM <=10000;
+    </copy>
+    ````
+4.	Check if the PART1 table got populated into the IM column store by querying V$IM_SEGMENTS. What do you observe?
+    ````
+    SQL> <copy>SELECT * FROM V$IM_SEGMENTS WHERE SEGMENT_NAME = 'PART1'; </copy>
+    no rows selected
+    ````
 
 5.	As the data was not committed, the IM column store will not be able to see the changes and hence cannot be populated to the column store. COMMIT the changes so they are visible to the column store.
 
-````
-<copy> COMMIT;
- </copy>
-````
-````
-SQL> COMMIT;
+    ````
+    SQL> <copy>COMMIT;</copy>
 
-Commit complete.
-````
+    Commit complete.
+    ````
 6.	Recheck V$IM_SEGMENTS.
-````
-<copy> SELECT * FROM V$IM_SEGMENTS WHERE SEGMENT_NAME = 'PART1';
- </copy>
-````
-````
-SQL> SELECT * FROM V$IM_SEGMENTS WHERE SEGMENT_NAME = 'PART1';
+    ````
+    SQL> <copy>SELECT * FROM V$IM_SEGMENTS WHERE SEGMENT_NAME = 'PART1';</copy>
 
-no rows selected
-````
+    no rows selected
+    ````
 
 7.	Notice that SALES1 still did not get populated even though you had performed a COMMIT. Why?
     This is because the initial population is only triggered by querying the table via full table scan, using DBMS_INMEMORY.POPULATE or by specifying the PRIORITY clause, none of which was done in this case.
 
 8.	Next, check the following session statistics:
 
--	IM populate segments requested. The number of times the session has requested for In-Memory population of a segment.
--	IM transactions. Transactions issued by the session to In-Memory tables (i.e. the number of times COMMITs have been issued).
--	IM transactions rows journaled. Count of rows logged in the Transaction Journal by the session. Transaction Journal is discussed in the DML section.
-````
-<copy> SELECT DISPLAY_NAME, VALUE  
-FROM V$MYSTAT m, V$STATNAME n
-WHERE m.STATISTIC# = n.STATISTIC#
-AND n.DISPLAY_NAME IN (
-'IM populate segments requested',
-'IM transactions',
-'IM transactions rows journaled');
-'
- </copy>
+    -	IM populate segments requested. The number of times the session has requested for In-Memory population of a segment.
+    -	IM transactions. Transactions issued by the session to In-Memory tables (i.e. the number of times COMMITs have been issued).
+    -	IM transactions rows journaled. Count of rows logged in the Transaction Journal by the session. Transaction Journal is discussed in the DML section.
+    ````
+    <copy> SELECT DISPLAY_NAME, VALUE  
+    FROM V$MYSTAT m, V$STATNAME n
+    WHERE m.STATISTIC# = n.STATISTIC#
+    AND n.DISPLAY_NAME IN (
+    'IM populate segments requested',
+    'IM transactions',
+    'IM transactions rows journaled');
+     </copy>
 
-DISPLAY_NAME					      VALUE
-------------------------------------------   --------
-IM transactions 					  	    1
-IM transactions rows journaled		      10000
-IM populate segments requested  			    0
-````
-
-9.	In the above output, observe the following:
--	IM populate segments requested. Segment population requested should be 0, as the column store population has not been triggered.
--	IM transactions. There was one COMMIT issued.
--	IM transactions rows journaled. The total number of rows loaded in the session so far is 10000.
+    DISPLAY_NAME                                 VALUE
+    ------------------------------------------   --------
+    IM transactions                               1
+    IM transactions rows journaled                10000
+    IM populate segments requested                0
+    ````
+ 9. In the above output, observe the following:
+    -	IM populate segments requested. Segment population requested should be 0, as the column store population has not been triggered.
+    -	IM transactions. There was one COMMIT issued.
+    -	IM transactions rows journaled. The total number of rows loaded in the session so far is 10000.
 
 10.	Let’s manually trigger a population using DBMS_INMEMORY.POPULATE procedure.
-````
-<copy>
-EXEC DBMS_INMEMORY.POPULATE('SSB','PART1',NULL); </copy>
 
-SQL> EXEC DBMS_INMEMORY.POPULATE('SSB','PART1',NULL);
-PL/SQL procedure successfully completed.
-````
-11.	Check the population status now. You may need to run the below query a few times until you see an entry for PART1 with BYTES_NOT_POPULATED as 0.
-````
-<copy>
-COL SEGMENT_NAME FORMAT A20
-SELECT SEGMENT_NAME, POPULATE_STATUS, BYTES, BYTES_NOT_POPULATED
-FROM V$IM_SEGMENTS WHERE SEGMENT_NAME = 'PART1'; </copy>
+    ````
+    SQL> <copy> EXEC DBMS_INMEMORY.POPULATE('SSB','PART1',NULL);
+         </copy>
+    PL/SQL procedure successfully completed.
+    ````
+11.	Check the population status now. You may need to run the below query a few times until you see an entry for PART1 with BYTES\_NOT\_POPULATED as 0.
 
-SEGMENT_NAME	   POPULATE_      BYTES BYTES_NOT_POPULATED
--------------------- --------- ---------- -------------------
-PART1		   COMPLETED     458752		            0
-````
+    ````
+    <copy>
+    COL SEGMENT_NAME FORMAT A20
+    SELECT SEGMENT_NAME, POPULATE_STATUS, BYTES, BYTES_NOT_POPULATED
+    FROM V$IM_SEGMENTS WHERE SEGMENT_NAME = 'PART1'; </copy>
 
-12.	Using V$IM_SEGMENTS_DETAIL, check the number of extents and blocks for SALES1, both on disk and in-memory. Note that the number of blocks loaded in-memory (i.e. mapped to IMCUs) may be different from on-disk blocks as only the used blocks get populated into the column store.
-````
-<copy>
-COL OBJECT_NAME FORMAT A20
+    SEGMENT_NAME         POPULATE_STAT      BYTES BYTES_NOT_POPULATED
+    -------------------- ------------- ---------- -------------------
+    PART1                COMPLETED        1998848                   0
 
-SELECT a.OBJECT_NAME, b.MEMBYTES, b.EXTENTS, b.BLOCKS,
-b.DATABLOCKS, b.BLOCKSINMEM, b.BYTES
-FROM V$IM_SEGMENTS_DETAIL b, DBA_OBJECTS a
-WHERE a.DATA_OBJECT_ID = b.DATAOBJ
-AND a.OBJECT_NAME =  'PART1'; </copy>
+    ````
+12.	Using V$IM\_SEGMENTS\_DETAIL, check the number of extents and blocks for SALES1, both on disk and in-memory. Note that the number of blocks loaded in-memory (i.e. mapped to IMCUs) may be different from on-disk blocks as only the used blocks get populated into the column store.
+    ````
+    <copy>
+    COL OBJECT_NAME FORMAT A11
+    set linesize 200
+    SELECT a.OBJECT_NAME, b.MEMBYTES, b.EXTENTS, b.BLOCKS,
+    b.DATABLOCKS, b.BLOCKSINMEM, b.BYTES
+    FROM V$IM_SEGMENTS_DETAIL b, DBA_OBJECTS a
+    WHERE a.DATA_OBJECT_ID = b.DATAOBJ
+    AND a.OBJECT_NAME =  'PART1'; </copy>
 
-OBJECT_NAM   MEMBYTES	 EXTENTS   BLOCKS     DATABLOCKS BLOCKSINMEM BYTES
----------- ---------- ---------- ---------- ---------- ----------- ------
-PART1	     1179648	       7	     56	      50	       50          458752
-````
+    OBJECT_NAME   MEMBYTES    EXTENTS     BLOCKS DATABLOCKS BLOCKSINMEM      BYTES
+    ----------- ---------- ---------- ---------- ---------- ----------- ----------
+    PART1          1310720         17        256        244         244    2097152
+    ````
 
-	From the above output, observe that PART1 so far has 7 extents, 56 allocated on-disk blocks (BLOCKS) and 50 used blocks (DATABLOCKS), out of which all 50 have been loaded to the IM column store (BLOCKSINMEM).
-  Note: If the table does not have PRIORITY ENABLED and you execute another Direct Path Load, then those segments will be populated either during the next query or when you execute DBMS_INMEMORY.REPOPULATE.
+	From the above output, observe that PART1 so far has 17 extents, 256 allocated on-disk blocks (BLOCKS) and 244 used blocks (DATABLOCKS), All rows in 244 blocks on disk is loaded to the IM column store (BLOCKSINMEM).
+
+  Note: If the table does not have PRIORITY ENABLED and you execute another Bulk Load, then those segments will be populated either during the next query or when you execute DBMS_INMEMORY.REPOPULATE.
 
 ## Step 2: DML and In-Memory tables
 
-In this scenario, you will load a few additional rows into PART1 and observe the column store population.
+We loaded data in bulk. Now you will load a few additional rows into PART1 using DML operation and observe the column store population.
 
-1.	Load a few rows into PART1 via IAS (Insert as Select). Commit the changes so they become visible to the IM column store.
-````
-<copy>
-INSERT INTO part1
-SELECT *
-FROM SALES
-WHERE ROWNUM <=1000;
-COMMIT; </copy>
-````
+13.	Load a few rows into PART1 via IAS (Insert as Select). Commit the changes so they become visible to the IM column store.
+    ````
+    <copy>
+    INSERT INTO PART1 SELECT * FROM PART WHERE ROWNUM <=1000;
+
+    COMMIT; </copy>
+    ````
 
 2.	Check the session statistics once again and observe the change.
-````
-<copy>
-SELECT DISPLAY_NAME, VALUE  FROM V$MYSTAT m, V$STATNAME n
-WHERE m.STATISTIC# = n.STATISTIC#
-AND n.DISPLAY_NAME IN (
-'IM populate segments requested',
-'IM transactions',
-'IM transactions rows journaled'); </copy>
+    ````
+    <copy>
+    SELECT DISPLAY_NAME, VALUE  FROM V$MYSTAT m, V$STATNAME n
+    WHERE m.STATISTIC# = n.STATISTIC#
+    AND n.DISPLAY_NAME IN (
+    'IM populate segments requested',
+    'IM transactions',
+    'IM transactions rows journaled'); </copy>
 
-DISPLAY_NAME					                       VALUE
-------------------------------------------   --------
-IM transactions 					  	                2
-IM transactions rows journaled		            11000
-IM populate segments requested  			        1
-````
+    DISPLAY_NAME					                       VALUE
+    ------------------------------------------   --------
+    IM transactions 					  	                2
+    IM transactions rows journaled		            11000
+    IM populate segments requested  			        1
+    ````
 	From the above output, the IM transactions are now incremented to 2 (one additional due to the recent COMMIT) and the number of IM transactions rows journaled are now 11000 (reflecting the newly added 1000 rows on top of 10000).
 
 3.	Check if the rows that just got inserted resulted in new extents being added to the on-disk table.
 ````
 <copy>
-COL OBJECT_NAME FORMAT A20
+COL OBJECT_NAME FORMAT A11
 SELECT a.OBJECT_NAME, b.MEMBYTES, b.EXTENTS, b.BLOCKS,
 b.DATABLOCKS, b.BLOCKSINMEM, b.BYTES
 FROM V$IM_SEGMENTS_DETAIL b, DBA_OBJECTS a
@@ -186,16 +185,13 @@ WHERE a.DATA_OBJECT_ID = b.DATAOBJ
 AND a.OBJECT_NAME =  'PART1';
 </copy>
 
-SQL> COL OBJECT_NAME FORMAT A10
+OBJECT_NAME   MEMBYTES    EXTENTS     BLOCKS DATABLOCKS BLOCKSINMEM      BYTES
+----------- ---------- ---------- ---------- ---------- ----------- ----------
+PART1          1310720         17        256        244         244    2097152
 
-SQL> SELECT a.OBJECT_NAME, b.MEMBYTES, b.EXTENTS, b.BLOCKS, b.DATABLOCKS, b.BLOCKSINMEM, b.BYTES FROM V$IM_SEGMENTS_DETAIL b, DBA_OBJECTS a WHERE a.DATA_OBJECT_ID = b.DATAOBJ AND a.OBJECT_NAME =  'PART1';
-
-OBJECT_NAM   MEMBYTES	 EXTENTS     BLOCKS DATABLOCKS BLOCKSINMEM BYTES
----------- ---------- ---------- ---------- ---------- ----------- ------
-PART1	  1179648	       7	     56	    50	    50 458752
 ````
 
-As you observe from the above output, no new extents were added as only a few rows were loaded (1000 rows). The table hasn’t grown its on-disk footprint, and still has 7 extents, 50 DATABLOCKS and 50 BLOCKSINMEM.
+As you observe from the above output, no new extents were added as only a few rows were loaded (1000 rows). The table hasn’t grown its on-disk footprint, and still has 17 extents, 244 DATABLOCKS and 244 BLOCKSINMEM.
 If the table would have grown its on-disk footprint, the rows in the new extents will not be automatically populated into the column store, unless a non-default PRIOIRTY is specified or the table gets accessed, or the procedure DBMS_INMEMORY.PROPULATE is used.
 If the new rows get added to existing extents/blocks, the new rows should be populated to the IM column store via the trickle repopulate process (discussed later), even when a default PRIORITY is specified on the table.
 
@@ -209,32 +205,39 @@ SELECT SEGMENT_NAME, POPULATE_STATUS, BYTES, BYTES_NOT_POPULATED
 FROM V$IM_SEGMENTS WHERE SEGMENT_NAME = 'PART1';
 </copy>
 
-SEGMENT_NAME	   POPULATE_      BYTES BYTES_NOT_POPULATED
--------------------- --------- ---------- -------------------
-PART1		   COMPLETED     458752		            0
+SEGMENT_NAME         POPULATE_STAT      BYTES BYTES_NOT_POPULATED
+-------------------- ------------- ---------- -------------------
+PART1                COMPLETED        1998848                   0
+
 ````
 BYTES_NOT_POPULATED only indicates the bytes in the new extents that got added to the segment and have not been populated to the column store. If the new rows get inserted into the existing extents, BYTES_NOT_POPULATED will still be 0 and new rows may still be not populated. This how the V$IM_SEGMENTS view behaves currently.
 Next, check if the newly added rows got populated to the IM column store using V$IM_HEADER view. This view contains details about all IMCUs (incl. split IMCUs) for all segments that are loaded into the column store.
 
-5. You may have to run the below query a few times in order to for TRICKLE_REPOPULATE to be set to 1.
+5. The number of rows contained within an IMCU can be observed in the v$im_header dynamic performance view. You may have to run the below query a few times in order to for TRICKLE_REPOPULATE to be set to 1.
 
 ````
 <copy>
-
-COL OBJECT_NAME FORMAT A10
-
-SELECT b.OBJECT_NAME, a.PREPOPULATED, a.REPOPULATED, a.TRICKLE_REPOPULATED, a.NUM_DISK_EXTENTS, a.NUM_BLOCKS, a.NUM_ROWS, a.NUM_COLS
-FROM V$IM_HEADER a, DBA_OBJECTS b
-WHERE a.OBJD = b.DATA_OBJECT_ID
-AND b.OBJECT_NAME =  'SALES1';
+COL OBJECT_NAME FORMAT A11
+SELECT b.OBJECT_NAME, a.PREPOPULATED, a.REPOPULATED, a.TRICKLE_REPOPULATED, a.NUM_DISK_EXTENTS, a.NUM_BLOCKS, a.NUM_ROWS, a.NUM_COLS FROM V$IM_HEADER a, DBA_OBJECTS b WHERE a.OBJD = b.DATA_OBJECT_ID  AND b.OBJECT_NAME =  'PART1'
 </copy>
-SQL> COL OBJECT_NAME FORMAT A10  SELECT b.OBJECT_NAME, a.PREPOPULATED, a.REPOPULATED, a.TRICKLE_REPOPULATED, a.NUM_DISK_EXTENTS, a.NUM_BLOCKS, a.NUM_ROWS, a.NUM_COLS FROM V$IM_HEADER a, DBA_OBJECTS b WHERE a.OBJD = b.DATA_OBJECT_ID AND b.OBJECT_NAME =  'SALES1';
 
-OBJECT_NAM PREPOPULATED REPOPULATED TRICKLE_REPOPULATED NUM_DISK_EXTENTS  NUM_BLOCKS   NUM_ROWS	NUM_COLS
+OBJECT_NAM PREPOPULATED REPOPULATED TRICKLE_REPOPULATED NUM_DISK_EXTENTS NUM_BLOCKS   NUM_ROWS   NUM_COLS
+---------- ------------ ----------- ------------------- ---------------- ---------- ---------- ----------
+PART1                 0           1                   1               17        244      11000          9
 
----------- ------------ ----------- ------------------- -------------------------- ---------- ----------
 
-PART1		      0 	  1		      1 	       7 	50	11000	       7
+
+
+SELECT a.OBJECT_NAME, b.INMEMORY_PRIORITY, b.POPULATE_STATUS, COUNT(1) IMCUs, SUM(num_rows),
+TO_CHAR(c.CREATETIME, 'MM/DD/YYYY HH24:MI:SS.FF2') START_POP, TO_CHAR(MAX(d.TIMESTAMP),'MM/DD/YYYY HH24:MI:SS.FF2') FINISH_POP FROM DBA_OBJECTS a, V$IM_SEGMENTS b,
+V$IM_SEGMENTS_DETAIL c, V$IM_HEADER d
+WHERE
+a.OBJECT_NAME = b.SEGMENT_NAME
+AND a.OBJECT_TYPE = 'TABLE'
+AND a.OBJECT_ID = c.BASEOBJ
+AND c.DATAOBJ = d.OBJD
+GROUP BY a.OBJECT_NAME, b.INMEMORY_PRIORITY, b.POPULATE_STATUS, c.CREATETIME ORDER BY FINISH_POP;
+</copy>
 ````
 
 Below are the observations from the above output:
