@@ -142,9 +142,9 @@ Once the load operation (direct path or non-direct path) has been committed, the
 
 	From the above output, observe that PART1 so far has 17 extents, 256 allocated on-disk blocks (BLOCKS) and 244 used blocks (DATABLOCKS), All rows in 244 blocks on disk is loaded to the IM column store (BLOCKSINMEM).
 
-  Note: If the table does not have PRIORITY ENABLED and you execute another Bulk Load, then those segments will be populated either during the next query or when you execute DBMS_INMEMORY.REPOPULATE.
+  Note: If the table does not have PRIORITY ENABLED and you execute another Bulk Load, then those segments will be populated either during the next query or when you execute DBMS_INMEMORY.POPULATE.
 
-## Step 2: DML and In-Memory tables
+## Step 2: DML and Trickle repopulation.
 
 We loaded data in bulk. Now you will load a few additional rows into PART1 using DML operation and observe the column store population.
 
@@ -156,7 +156,7 @@ We loaded data in bulk. Now you will load a few additional rows into PART1 using
     COMMIT; </copy>
     ````
 
-2.	Check the session statistics once again and observe the change.
+14.	Check the session statistics once again and observe the change.
     ````
     <copy>
     SELECT DISPLAY_NAME, VALUE  FROM V$MYSTAT m, V$STATNAME n
@@ -166,88 +166,86 @@ We loaded data in bulk. Now you will load a few additional rows into PART1 using
     'IM transactions',
     'IM transactions rows journaled'); </copy>
 
-    DISPLAY_NAME					                       VALUE
+    DISPLAY_NAME                                 VALUE
     ------------------------------------------   --------
-    IM transactions 					  	                2
-    IM transactions rows journaled		            11000
-    IM populate segments requested  			        1
+    IM transactions                                     2
+    IM transactions rows journaled                  11000
+    IM populate segments requested                      1
     ````
 	From the above output, the IM transactions are now incremented to 2 (one additional due to the recent COMMIT) and the number of IM transactions rows journaled are now 11000 (reflecting the newly added 1000 rows on top of 10000).
 
-3.	Check if the rows that just got inserted resulted in new extents being added to the on-disk table.
-````
-<copy>
-COL OBJECT_NAME FORMAT A11
-SELECT a.OBJECT_NAME, b.MEMBYTES, b.EXTENTS, b.BLOCKS,
-b.DATABLOCKS, b.BLOCKSINMEM, b.BYTES
-FROM V$IM_SEGMENTS_DETAIL b, DBA_OBJECTS a
-WHERE a.DATA_OBJECT_ID = b.DATAOBJ
-AND a.OBJECT_NAME =  'PART1';
-</copy>
+15.	Check if the rows that just got inserted resulted in new extents being added to the on-disk table.
+    ````
+    <copy>
+    COL OBJECT_NAME FORMAT A11
+    SELECT a.OBJECT_NAME, b.MEMBYTES, b.EXTENTS, b.BLOCKS,
+    b.DATABLOCKS, b.BLOCKSINMEM, b.BYTES
+    FROM V$IM_SEGMENTS_DETAIL b, DBA_OBJECTS a
+    WHERE a.DATA_OBJECT_ID = b.DATAOBJ
+    AND a.OBJECT_NAME =  'PART1';
+    </copy>
 
-OBJECT_NAME   MEMBYTES    EXTENTS     BLOCKS DATABLOCKS BLOCKSINMEM      BYTES
------------ ---------- ---------- ---------- ---------- ----------- ----------
-PART1          1310720         17        256        244         244    2097152
+    OBJECT_NAME   MEMBYTES    EXTENTS     BLOCKS DATABLOCKS BLOCKSINMEM      BYTES
+    ----------- ---------- ---------- ---------- ---------- ----------- ----------
+    PART1          1310720         17        256        244         244    2097152
 
-````
+    ````
 
-As you observe from the above output, no new extents were added as only a few rows were loaded (1000 rows). The table hasn’t grown its on-disk footprint, and still has 17 extents, 244 DATABLOCKS and 244 BLOCKSINMEM.
+16. As you observe from the above output, no new extents were added as only a few rows were loaded (1000 rows). The table hasn’t grown its on-disk footprint, and still has 17 extents, 244 DATABLOCKS and 244 BLOCKSINMEM.
 If the table would have grown its on-disk footprint, the rows in the new extents will not be automatically populated into the column store, unless a non-default PRIOIRTY is specified or the table gets accessed, or the procedure DBMS_INMEMORY.PROPULATE is used.
-If the new rows get added to existing extents/blocks, the new rows should be populated to the IM column store via the trickle repopulate process (discussed later), even when a default PRIORITY is specified on the table.
+If the new rows get added to existing extents/blocks, the new rows should be populated to the IM column store via the *trickle repopulate process*, even when a default PRIORITY is specified on the table.
 
-4.	Check the V$IM_SEGMENTS view and observe the value in BYTES_NOT_POPULATED column. Do you think a 0 in this column indicate that all the new rows have been added to the column store ?
+17.	Check the V$IM_SEGMENTS view and observe the value in BYTES_NOT_POPULATED column. Do you think a 0 in this column indicate that all the new rows have been added to the column store ?
 
-````
-<copy>
-COL SEGMENT_NAME FORMAT A20
+    ````
+    <copy>
+    COL SEGMENT_NAME FORMAT A20
 
-SELECT SEGMENT_NAME, POPULATE_STATUS, BYTES, BYTES_NOT_POPULATED
-FROM V$IM_SEGMENTS WHERE SEGMENT_NAME = 'PART1';
-</copy>
+    SELECT SEGMENT_NAME, POPULATE_STATUS, BYTES, BYTES_NOT_POPULATED
+    FROM V$IM_SEGMENTS WHERE SEGMENT_NAME = 'PART1';
+    </copy>
 
-SEGMENT_NAME         POPULATE_STAT      BYTES BYTES_NOT_POPULATED
--------------------- ------------- ---------- -------------------
-PART1                COMPLETED        1998848                   0
+    SEGMENT_NAME         POPULATE_STAT      BYTES BYTES_NOT_POPULATED
+    -------------------- ------------- ---------- -------------------
+    PART1                COMPLETED        1998848                   0
 
-````
+    ````
 BYTES_NOT_POPULATED only indicates the bytes in the new extents that got added to the segment and have not been populated to the column store. If the new rows get inserted into the existing extents, BYTES_NOT_POPULATED will still be 0 and new rows may still be not populated. This how the V$IM_SEGMENTS view behaves currently.
 Next, check if the newly added rows got populated to the IM column store using V$IM_HEADER view. This view contains details about all IMCUs (incl. split IMCUs) for all segments that are loaded into the column store.
 
-5. The number of rows contained within an IMCU can be observed in the v$im_header dynamic performance view. You may have to run the below query a few times in order to for TRICKLE_REPOPULATE to be set to 1.
+18. The number of rows contained within an IMCU can be observed in the v$im_header dynamic performance view. You may have to run the below query a few times in order to for TRICKLE_REPOPULATE to be set to 1.
 
-````
-<copy>
-COL OBJECT_NAME FORMAT A11
-SELECT b.OBJECT_NAME, a.PREPOPULATED, a.REPOPULATED, a.TRICKLE_REPOPULATED, a.NUM_DISK_EXTENTS, a.NUM_BLOCKS, a.NUM_ROWS, a.NUM_COLS FROM V$IM_HEADER a, DBA_OBJECTS b WHERE a.OBJD = b.DATA_OBJECT_ID  AND b.OBJECT_NAME =  'PART1'
-</copy>
+    ````
+    <copy>
+    COL OBJECT_NAME FORMAT A11
+    SELECT b.OBJECT_NAME, a.PREPOPULATED, a.REPOPULATED, a.TRICKLE_REPOPULATED, a.NUM_DISK_EXTENTS, a.NUM_BLOCKS, a.NUM_ROWS, a.NUM_COLS FROM V$IM_HEADER a, DBA_OBJECTS b WHERE a.OBJD = b.DATA_OBJECT_ID  AND b.OBJECT_NAME =  'PART1'
+    </copy>
 
-OBJECT_NAM PREPOPULATED REPOPULATED TRICKLE_REPOPULATED NUM_DISK_EXTENTS NUM_BLOCKS   NUM_ROWS   NUM_COLS
----------- ------------ ----------- ------------------- ---------------- ---------- ---------- ----------
-PART1                 0           1                   1               17        244      11000          9
-
-
+    OBJECT_NAM PREPOPULATED REPOPULATED TRICKLE_REPOPULATED NUM_DISK_EXTENTS NUM_BLOCKS   NUM_ROWS   NUM_COLS
+    ---------- ------------ ----------- ------------------- ---------------- ---------- ---------- ----------
+    PART1                 0           1                   1               17        244      11000          9
 
 
-SELECT a.OBJECT_NAME, b.INMEMORY_PRIORITY, b.POPULATE_STATUS, COUNT(1) IMCUs, SUM(num_rows),
-TO_CHAR(c.CREATETIME, 'MM/DD/YYYY HH24:MI:SS.FF2') START_POP, TO_CHAR(MAX(d.TIMESTAMP),'MM/DD/YYYY HH24:MI:SS.FF2') FINISH_POP FROM DBA_OBJECTS a, V$IM_SEGMENTS b,
-V$IM_SEGMENTS_DETAIL c, V$IM_HEADER d
-WHERE
-a.OBJECT_NAME = b.SEGMENT_NAME
-AND a.OBJECT_TYPE = 'TABLE'
-AND a.OBJECT_ID = c.BASEOBJ
-AND c.DATAOBJ = d.OBJD
-GROUP BY a.OBJECT_NAME, b.INMEMORY_PRIORITY, b.POPULATE_STATUS, c.CREATETIME ORDER BY FINISH_POP;
-</copy>
-````
+
+
+    SELECT a.OBJECT_NAME, b.INMEMORY_PRIORITY, b.POPULATE_STATUS, COUNT(1) IMCUs, SUM(num_rows),
+    TO_CHAR(c.CREATETIME, 'MM/DD/YYYY HH24:MI:SS.FF2') START_POP, TO_CHAR(MAX(d.TIMESTAMP),'MM/DD/YYYY HH24:MI:SS.FF2') FINISH_POP FROM DBA_OBJECTS a, V$IM_SEGMENTS b,
+    V$IM_SEGMENTS_DETAIL c, V$IM_HEADER d
+    WHERE
+    a.OBJECT_NAME = b.SEGMENT_NAME
+    AND a.OBJECT_TYPE = 'TABLE'
+    AND a.OBJECT_ID = c.BASEOBJ
+    AND c.DATAOBJ = d.OBJD
+    GROUP BY a.OBJECT_NAME, b.INMEMORY_PRIORITY, b.POPULATE_STATUS, c.CREATETIME ORDER BY FINISH_POP;
+    </copy>
+    ````
 
 Below are the observations from the above output:
 -	There is only one IMCU (evident from the presence of only a single row in the output).
 - 	The number of on disk rows mapped to this IMCU is 11000, which means that the newly added 1000 rows were also recorded in the journal.
-- A total of 50 disk extents have been mapped to this IMCU.
+- A total of 17 disk extents have been mapped to this IMCU.
 - The REPOPULATED flag and the TRICKLE_REPOPULATED flag for this IMCU has been set to 1 (indicating that the trickle repopulate process has synchronized the changes).
 - The trickle repopulate process must have populated the last 1000 rows.
-
-
 
 
 
@@ -261,7 +259,7 @@ Below are the observations from the above output:
   - DML RUN   : run queries while inserting 500 rows to lineorder and commiting after each row.
   - ALL       : run queries while, batch and DML operating are happening.
 
-  6. create the  procedure as SSB that will query the SQLS.
+  19. create the  procedure as SSB that will query the SQLS.
 
   ````
   <copy>
@@ -325,7 +323,7 @@ commit ;
 end;
 </copy>
 ````
-7. Now run the PLSQL to run the Query  in the background while running BATCH, DML or both.
+20. Now run the PLSQL to run the Query  in the background while running BATCH, DML or both.
 
 ````
 <copy>
