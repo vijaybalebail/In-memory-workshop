@@ -12,7 +12,7 @@ The major capability of the tool is
 
 1)  to run any give sql statement with in-memory ENABLED and  DISABLED and display the 2 different sql plans and stats. All the statistics that changed during the execution of the sql statement are displayed side-by-side. The unique features is that it can keep the same sql_id for the sql statment as the tool will not alter the statement in any way. (like adding a HINT or count in front of the sql).  Also, it only fetches the first 10 rows and stops. This will ensure you are only counting the DB time and not network time to move large amount of data.
 
-2) It also has  provision to add multiple session level information to run statements like "alter session set nls\_date\_format ...;alter session....; " This will help if the sql queries expect date to be of a certain format so that you need not add to_date syntax. Also, you can add other tunable parameters like parallel degrees,APPROX\_FOR\_AGGREGATION,etc.
+2) It also has  provision to add multiple alter session statements seperated by '';'' "alter session set nls\_date\_format ...;alter session....; " This will help if the sql queries expect date to be of a certain format so that you need not add to_date syntax. Also, you can add other tunable parameters like parallel degrees,APPROX\_FOR\_AGGREGATION,etc.
 
 3) Show barchart of execution times when run in Buffer and In-Memory.
 
@@ -270,21 +270,11 @@ and lo_orderpriority = '5-LOW'; </copy>
  Note that the first time you run of the query, it might appear slower as the runstat package may not be in the shared pool.
 Rerun the report again and compare.
 
-Some sql queries will need to set session parameters like Parallel Degree, Hint and invisible indexes, optimizer tuning parameters and NLS date formats. We already tested one query by enabling invisible index in our test. We can now
+Some sql queries will need to set session parameters like Parallel Degree, Hint and invisible indexes, optimizer tuning *parameters and NLS date formats. We already tested one query by enabling invisible index in our test. We can now run it in this tool.*
+
+Open
 
 ## Top InmemorySQL report
 
-![](images/topSQLwithInMemory.png)
 
-SELECT /*+ 11VECTOR_TRANSFORM */ d.d_year,  p.p_brand1,SUM(lo_revenue) rev
-FROM   lineorder l,
-    date_dim d,
-    part p,
-    supplier s
-WHERE  l.lo_orderdate = d.d_datekey
-AND    l.lo_partkey = p.p_partkey
-AND    l.lo_suppkey = s.s_suppkey
-AND    p.p_category = 'MFGR#12'
-AND    s.s_region   = 'AMERICA'
-AND    d.d_year     = 1997
-GROUP  BY d.d_year,p.p_brand1;
+![](images/topSQLwithInMemory.png)

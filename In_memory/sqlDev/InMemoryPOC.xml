@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <displays>
 <folder>
-	<name><![CDATA[In_memory_monitoring]]></name>
+	<name><![CDATA[In_memory POC tool]]></name>
 	<tooltip><![CDATA[In_memory_monitoring]]></tooltip>
 	<description><![CDATA[ ]]></description>
 		<display id="a3991837-0148-1000-8003-0a9fb866e52c" type="" style="plsql-dbms_output" enable="true">
@@ -13,7 +13,7 @@
 		</CustomValues>
 		<query>
 			<sql><![CDATA[declare
- string1 varchar2 (32) ;
+ string1 varchar2(32) ;
  string2 varchar2(8000);
  i_cur sys_refcursor;
  cnt number;
@@ -36,8 +36,14 @@ table_name in ('V_$LATCH','V_$SESSTAT','V_$TIMER','V_$STATNAME','V_$MYSTAT') and
   execute immediate string2 ;
   dbms_output.put_line('Table Created');
   exception when others then
-  dbms_output.put_line(sqlerrm);
-  -- dbms_output.put_line('temp table is already created');
+   IF SQLCODE = -955 
+      THEN 
+         /* ORA-00955: name is already used by an existing object */ 
+          dbms_output.put_line('temp table run_stats is already created');
+         
+      ELSE 
+         dbms_output.put_line(sqlerrm);  
+      END IF; 
   end;
   string2:='create or replace view stats as select ''STAT...'' || a.name name, b.value
       from v$statname a, v$mystat b  where a.statistic# = b.statistic#
@@ -334,6 +340,12 @@ end;
 				<table font="AR PL UMing CN" size="10" style="NORMAL" color="-16777216" userowshading="false" oddrowshading="-1" evenrowshading="-1" showborders="true" spacingbefore="12" spacingafter="12" horizontalalign="LEFT" />
 				<header enable="false" generatedate="false">
 					<data>
+					
+					
+					
+					
+					
+					
 
 
 
@@ -359,7 +371,7 @@ end;
 
 
 
-					null																																																																																																																																	</data>
+					null																																																																																																																																																															</data>
 				</header>
 				<footer enable="false" generatedate="false">
 					<data value="null" />
@@ -513,16 +525,16 @@ END;]]></sql>
 				<bind id="query_string1">
 					<prompt><![CDATA[query_string1]]></prompt>
 					<tooltip><![CDATA[query_string1]]></tooltip>
-					<value><![CDATA[SELECT
-max(lo_ordtotalprice) most_expensive_order,
-sum(lo_quantity) total_items
-FROM lineorder;]]></value>
+					<value><![CDATA[Select  /* With index */ lo_orderkey, lo_custkey, lo_revenue
+From    LINEORDER
+Where   lo_orderkey = 5000000;]]></value>
 					<bracket><![CDATA[null]]></bracket>
 				</bind>
 				<bind id="alter_session_stmts">
 					<prompt><![CDATA[alter_session_stmts]]></prompt>
 					<tooltip><![CDATA[alter_session_stmts]]></tooltip>
-					<value><![CDATA[ alter session set nls_date_format = 'DD-MON-YYYY HH24:MI:SS';]]></value>
+					<value><![CDATA[alter session set nls_date_format='DD-MON-YYYY HH24:MI:SS';
+Copyalter session set optimizer_use_invisible_indexes=true;]]></value>
 					<bracket><![CDATA[null]]></bracket>
 				</bind>
 			</binds>
@@ -538,6 +550,12 @@ FROM lineorder;]]></value>
 				<table font="null" size="10" style="NORMAL" color="-16777216" userowshading="false" oddrowshading="-1" evenrowshading="-1" showborders="true" spacingbefore="12" spacingafter="12" horizontalalign="LEFT" />
 				<header enable="false" generatedate="false">
 					<data>
+					
+					
+					
+					
+					
+					
 
 
 
@@ -553,7 +571,7 @@ FROM lineorder;]]></value>
 
 
 
-					null																																																																															</data>
+					null																																																																																																													</data>
 				</header>
 				<footer enable="false" generatedate="false">
 					<data value="null" />
@@ -598,6 +616,12 @@ order by size_mb desc]]></sql>
 				<table font="AR PL UMing CN" size="10" style="NORMAL" color="-16777216" userowshading="false" oddrowshading="-1" evenrowshading="-1" showborders="true" spacingbefore="12" spacingafter="12" horizontalalign="LEFT" />
 				<header enable="false" generatedate="false">
 					<data>
+					
+					
+					
+					
+					
+					
 
 
 
@@ -623,7 +647,7 @@ order by size_mb desc]]></sql>
 
 
 
-					null																																																																																																																																	</data>
+					null																																																																																																																																																															</data>
 				</header>
 				<footer enable="false" generatedate="false">
 					<data value="null" />
@@ -657,6 +681,12 @@ from
 					<table font="null" size="10" style="NORMAL" color="-16777216" userowshading="false" oddrowshading="-1" evenrowshading="-1" showborders="true" spacingbefore="12" spacingafter="12" horizontalalign="LEFT" />
 					<header enable="false" generatedate="false">
 						<data>
+						
+						
+						
+						
+						
+						
 
 
 
@@ -671,7 +701,7 @@ from
 
 
 
-						null																																																																																									</data>
+						null																																																																																																																													</data>
 					</header>
 					<footer enable="false" generatedate="false">
 						<data value="null" />
@@ -733,9 +763,15 @@ order by bytes desc]]></sql>
 					<table font="null" size="10" style="NORMAL" color="-16777216" userowshading="false" oddrowshading="-1" evenrowshading="-1" showborders="true" spacingbefore="12" spacingafter="12" horizontalalign="LEFT" />
 					<header enable="false" generatedate="false">
 						<data>
+						
+						
+						
+						
+						
+						
 
 
-						null																		</data>
+						null																																																						</data>
 					</header>
 					<footer enable="false" generatedate="false">
 						<data value="null" />
@@ -752,7 +788,17 @@ order by bytes desc]]></sql>
 				<TYPE><![CDATA[horizontal]]></TYPE>
 			</CustomValues>
 			<query>
-				<sql><![CDATA[select * from v$im_segments]]></sql>
+				<sql><![CDATA[SELECT a.OBJECT_NAME, b.INMEMORY_PRIORITY, b.POPULATE_STATUS, count(1) IMCUs,sum(num_rows),
+TO_CHAR(c.CREATETIME, 'MM/DD/YYYY HH24:MI:SS.FF2') START_POP, TO_CHAR(MAX(d.TIMESTAMP),'MM/DD/YYYY HH24:MI:SS.FF2') FINISH_POP
+FROM DBA_OBJECTS a, V$IM_SEGMENTS b, 
+V$IM_SEGMENTS_DETAIL c, V$IM_HEADER d
+WHERE 
+a.OBJECT_NAME = b.SEGMENT_NAME
+AND a.OBJECT_TYPE = 'TABLE'
+AND a.OBJECT_ID = c.BASEOBJ
+AND c.DATAOBJ = d.OBJD
+GROUP BY a.OBJECT_NAME, b.INMEMORY_PRIORITY, b.POPULATE_STATUS, c.CREATETIME
+ORDER BY FINISH_POP]]></sql>
 			</query>
 				<pdf version="VERSION_1_7" compression="CONTENT">
 					<docproperty title="null" author="null" subject="null" keywords="null" />
@@ -765,9 +811,15 @@ order by bytes desc]]></sql>
 					<table font="null" size="10" style="NORMAL" color="-16777216" userowshading="false" oddrowshading="-1" evenrowshading="-1" showborders="true" spacingbefore="12" spacingafter="12" horizontalalign="LEFT" />
 					<header enable="false" generatedate="false">
 						<data>
+						
+						
+						
+						
+						
+						
 
 
-						null																		</data>
+						null																																																						</data>
 					</header>
 					<footer enable="false" generatedate="false">
 						<data value="null" />
@@ -805,7 +857,13 @@ where sql_id in (select distinct sql_id from v$sql_plan  where options like '%IN
 					<table font="null" size="10" style="NORMAL" color="-16777216" userowshading="false" oddrowshading="-1" evenrowshading="-1" showborders="true" spacingbefore="12" spacingafter="12" horizontalalign="LEFT" />
 					<header enable="false" generatedate="false">
 						<data>
-						null						</data>
+						
+						
+						
+						
+						
+						
+						null																																										</data>
 					</header>
 					<footer enable="false" generatedate="false">
 						<data value="null" />
@@ -815,7 +873,7 @@ where sql_id in (select distinct sql_id from v$sql_plan  where options like '%IN
 		</display>
 	</display>
 	<display id="a401cf4a-0148-1000-8016-0a9fb866e52c" type="" style="Chart" enable="true">
-		<name><![CDATA[in-memory-objectsgraph]]></name>
+		<name><![CDATA[in-memory-objects]]></name>
 		<description><![CDATA[]]></description>
 		<tooltip><![CDATA[]]></tooltip>
 		<drillclass><![CDATA[]]></drillclass>
@@ -876,6 +934,12 @@ order by bytes desc]]></sql>
 				<table font="AR PL UMing CN" size="10" style="NORMAL" color="-16777216" userowshading="false" oddrowshading="-1" evenrowshading="-1" showborders="true" spacingbefore="12" spacingafter="12" horizontalalign="LEFT" />
 				<header enable="false" generatedate="false">
 					<data>
+					
+					
+					
+					
+					
+					
 
 
 
@@ -909,7 +973,7 @@ order by bytes desc]]></sql>
 
 
 
-					null																																																																																																																																																																									</data>
+					null																																																																																																																																																																																																							</data>
 				</header>
 				<footer enable="false" generatedate="false">
 					<data value="null" />
@@ -1073,19 +1137,12 @@ END;]]></sql>
 				<bind id="query_string1">
 					<prompt><![CDATA[query_string1]]></prompt>
 					<tooltip><![CDATA[query_string1]]></tooltip>
-					<value><![CDATA[SELECT d.d_year, p.p_brand1,SUM(lo_revenue) rev
-FROM   lineorder l,
-    date_dim d,
-    part p,
-    supplier s
-WHERE  l.lo_orderdate = d.d_datekey
-AND    l.lo_partkey = p.p_partkey
-AND    l.lo_suppkey = s.s_suppkey
-AND    p.p_category = 'MFGR#12'
-AND    s.s_region   = 'AMERICA'
-AND    d.d_year     = 1997
-GROUP  BY d.d_year,p.p_brand1;
-]]></value>
+					<value><![CDATA[  select /*dssd*/
+  max(lo_ordtotalprice) most_expensive_order,
+  sum(lo_quantity) total_items
+  from
+  LINEORDER;
+  ]]></value>
 					<bracket><![CDATA[null]]></bracket>
 				</bind>
 			</binds>
@@ -1101,6 +1158,12 @@ GROUP  BY d.d_year,p.p_brand1;
 				<table font="null" size="10" style="NORMAL" color="-16777216" userowshading="false" oddrowshading="-1" evenrowshading="-1" showborders="true" spacingbefore="12" spacingafter="12" horizontalalign="LEFT" />
 				<header enable="false" generatedate="false">
 					<data>
+					
+					
+					
+					
+					
+					
 
 
 
@@ -1112,7 +1175,7 @@ GROUP  BY d.d_year,p.p_brand1;
 
 
 
-					null																																																											</data>
+					null																																																																																									</data>
 				</header>
 				<footer enable="false" generatedate="false">
 					<data value="null" />
@@ -1121,7 +1184,7 @@ GROUP  BY d.d_year,p.p_brand1;
 			</pdf>
 	</display>
 	<display id="a40329f8-0148-1000-8018-0a9fb866e52c" type="" style="Table" enable="true">
-		<name><![CDATA[Load all inmemory tables]]></name>
+		<name><![CDATA[Load all In-Memory tables]]></name>
 		<description><![CDATA[]]></description>
 		<tooltip><![CDATA[Its loads all partitions and all tables with inmemory settings.]]></tooltip>
 		<drillclass><![CDATA[]]></drillclass>
@@ -1133,7 +1196,7 @@ GROUP  BY d.d_year,p.p_brand1;
       table_name,
       to_number(
         extractvalue(
-          xmltype(dbms_xmlgen.getxml('select /*+ full(a) parallel(a,8) */ count(*) c from '||table_name||' a' ))
+          xmltype(dbms_xmlgen.getxml('select /*+ full(a) noparallel (a,8) */ count(*) c from '||table_name||' a' ))
           ,'/ROWSET/ROW/C')
           )
           count from (select  a.table_name from dba_tables a where
@@ -1153,6 +1216,12 @@ GROUP  BY d.d_year,p.p_brand1;
 				<table font="AR PL UMing CN" size="10" style="NORMAL" color="-16777216" userowshading="false" oddrowshading="-1" evenrowshading="-1" showborders="true" spacingbefore="12" spacingafter="12" horizontalalign="LEFT" />
 				<header enable="false" generatedate="false">
 					<data>
+					
+					
+					
+					
+					
+					
 
 
 
@@ -1178,7 +1247,7 @@ GROUP  BY d.d_year,p.p_brand1;
 
 
 
-					null																																																																																																																																	</data>
+					null																																																																																																																																																															</data>
 				</header>
 				<footer enable="false" generatedate="false">
 					<data value="null" />
@@ -1217,7 +1286,7 @@ begin
  row_uncmp        => v_row_uncmp,
  cmp_ratio        => v_cmp_ratio,
  comptype_str     => v_comptype_str);
- -- dbms_output.put_line('<PRE>');
+ dbms_output.put_line('<PRE>');
  dbms_output.put_line(upper(v_ownname)||'.'||v_OBJNAME);
   dbms_output.put_line('Compression Type:         ' || v_comptype_str);
  dbms_output.put_line('Estimated Compression Ratio: '||to_char(v_cmp_ratio));
@@ -1271,6 +1340,12 @@ end;]]></sql>
 				<table font="AR PL UMing CN" size="10" style="NORMAL" color="-16777216" userowshading="false" oddrowshading="-1" evenrowshading="-1" showborders="true" spacingbefore="12" spacingafter="12" horizontalalign="LEFT" />
 				<header enable="false" generatedate="false">
 					<data>
+					
+					
+					
+					
+					
+					
 
 
 
@@ -1300,7 +1375,7 @@ end;]]></sql>
 
 
 
-					null																																																																																																																																																					</data>
+					null																																																																																																																																																																																			</data>
 				</header>
 				<footer enable="false" generatedate="false">
 					<data value="null" />
@@ -1310,16 +1385,8 @@ end;]]></sql>
 	</display>
 	<display id="4305d0aa-0175-1000-800c-c0a83801f77e" type="" style="Chart" enable="true">
 		<name><![CDATA[Top Sqls In-Memory/Buffer POC]]></name>
-		<description><![CDATA[ SELECT sql_id ,plan_hash_value ,  avg_elapsed_sec
-FROM (SELECT sql_id,  plan_hash_value||decode(im_scans,0,'_BUFFER','_IM') plan_hash_value, elapsed_time, cpu_time, sql_text
-disk_reads,
- round(elapsed_time/decode(executions,0,1,executions)/1000000,3) avg_elapsed_sec,
-        round(cpu_time/decode(executions,0,1,executions)/1000000,3) avg_cpu,
-RANK () OVER (partition by sql_id ORDER BY elapsed_time DESC) AS elapsed_rank
-FROM v$sql
-where sql_id in (select distinct sql_id from v$sql_plan  where options like '%INMEMORY%') )
- where elapsed_rank <= 40;]]></description>
-		<tooltip><![CDATA[]]></tooltip>
+		<description><![CDATA[Top 10 sql_is with INMEMORY plan.]]></description>
+		<tooltip><![CDATA[Top 10 sql_is with INMEMORY plan]]></tooltip>
 		<drillclass><![CDATA[]]></drillclass>
 		<CustomValues>
 			<THREED><![CDATA[true]]></THREED>
@@ -1351,14 +1418,20 @@ where sql_id in (select distinct sql_id from v$sql_plan  where options like '%IN
 				<table font="null" size="10" style="NORMAL" color="-16777216" userowshading="false" oddrowshading="-1" evenrowshading="-1" showborders="true" spacingbefore="12" spacingafter="12" horizontalalign="LEFT" />
 				<header enable="false" generatedate="false">
 					<data>
-					null					</data>
+					
+					
+					
+					
+					
+					
+					null																																			</data>
 				</header>
 				<footer enable="false" generatedate="false">
 					<data value="null" />
 				</footer>
 				<pagesetup papersize="LETTER" orientation="1" measurement="in" margintop="1.0" marginbottom="1.0" marginleft="1.0" marginright="1.0" />
 			</pdf>
-		<display id="null" type="" style="plsql-dbms_output" enable="true">
+		<display id="" type="" style="plsql-dbms_output" enable="true">
 			<name><![CDATA[Sql text and plan]]></name>
 			<description><![CDATA[]]></description>
 			<tooltip><![CDATA[]]></tooltip>
@@ -1376,6 +1449,7 @@ begin
 exception when others then
 null;
 end;
+ dbms_output.enable(1000000);
 dbms_output.put_line('<PRE>');
 dbms_output.put_line('QUERY TEXT');
 dbms_output.put_line(sql_text);
@@ -1410,7 +1484,13 @@ end;]]></sql>
 					<table font="null" size="10" style="NORMAL" color="-16777216" userowshading="false" oddrowshading="-1" evenrowshading="-1" showborders="true" spacingbefore="12" spacingafter="12" horizontalalign="LEFT" />
 					<header enable="false" generatedate="false">
 						<data>
-						null						</data>
+						
+						
+						
+						
+						
+						
+						null																																										</data>
 					</header>
 					<footer enable="false" generatedate="false">
 						<data value="null" />

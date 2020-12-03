@@ -385,7 +385,7 @@ END;
 </copy>
 ````
 This job will run for about 5 minutes. You can run the following query to see the average time each query took under different load conditions.
-What you will observe is that the query performance does not alter much running by itself (BASE_RUN), or when there is bulk loading or DML operations on the table being queried. or when all of the activities are performed on the table.
+What you will observe is that the query performance does not alter much running by itself (BASE_RUN), or when there is bulk loading(QRUN_BATCH) or DML (QRUN_DML) operations on the table being queried. when all (QRUN_ALL) of the activities are performed on the table the performance is still consisteant. This indicates that CPU utilizations for running the queries is consistent.
 ````
 <copy>
 select run_type,qx, count(1) runs, round(avg(qrun_time),3)
