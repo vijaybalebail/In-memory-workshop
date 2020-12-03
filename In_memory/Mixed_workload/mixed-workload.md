@@ -329,7 +329,7 @@ end;
 
 ````
 <copy>
-  DECLARE
+DECLARE
   PROCEDURE wait_macro as
   cnt1 number:=1;
   BEGIN
@@ -377,14 +377,36 @@ BEGIN
       insert into lineorder values (c1."LO_ORDERKEY",c1.LO_LINENUMBER,c1.LO_CUSTKEY,c1.LO_PARTKEY,c1.LO_SUPPKEY,c1.LO_ORDERDATE,c1.LO_ORDERPRIORITY,c1.LO_SHIPPRIORITY,c1.LO_QUANTITY, c1.LO_EXTENDEDPRICE,c1.LO_ORDTOTALPRICE,c1.LO_DISCOUNT, c1.LO_REVENUE,c1.LO_SUPPLYCOST,c1.LO_TAX,c1.LO_COMMITDATE,c1.LO_SHIPMODE ) ;
    end loop;
    commit;
-   EXECUTE IMMEDIATE 'insert /*+ append * / into lineorder select * from lineorder2 where rownum <=10000';
+   EXECUTE IMMEDIATE 'insert /*+ append */ into lineorder select * from lineorder2 where rownum <=10000';
    commit;
    WAIT_MACRO();
 END;
 /
 </copy>
 ````
+This job will run for about 5 minutes. You can run the following query to see the average time each query took under different load conditions.
+What you will observe is that the query performance does not alter much running by itself (BASE_RUN), or when there is bulk loading or DML operations on the table being queried. or when all of the activities are performed on the table.
+````
+<copy>
+select run_type,qx, count(1) runs, round(avg(qrun_time),3)
+from run_time  group by run_type,qx order by  qx,run_type;
+</copy>
 
+RUN_TYPE                       QX       RUNS ROUND(AVG(QRUN_TIME),3)
+------------------------------ -- ---------- -----------------------
+QRUN_ALL                       Q1        400                    .002
+QRUN_BASE                      Q1        400                    .001
+QRUN_BATCH                     Q1        400                    .001
+QRUN_DML                       Q1        400                    .001
+QRUN_ALL                       Q2        400                    .015
+QRUN_BASE                      Q2        400                    .014
+QRUN_BATCH                     Q2        400                    .015
+QRUN_DML                       Q2        400                    .015
+QRUN_ALL                       Q3        400                    .199
+QRUN_BASE                      Q3        400                    .198
+QRUN_BATCH                     Q3        400                    .199
+QRUN_DML                       Q3        400                    .194
+````
 
 ## Conclusion
 
@@ -395,5 +417,5 @@ Single row change done via the buffer cache (OLTP style changes), are typically 
 
 ## Acknowledgements
 
-- **Author** - Vijay Balebail, Maqsood Aalam .
+- **Author** - Vijay Balebail.
 - **Last Updated By/Date** - Oct 2020.
