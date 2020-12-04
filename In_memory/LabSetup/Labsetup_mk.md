@@ -85,9 +85,13 @@ You are now connected securely using your Mac terminal utility.
 Run this command to setup the schema, SSB, you will use for this lab. This script takes about 15 minutes to complete. It downloads the ssb.dmp file and then imports it.
 ````
 <copy>
-cd /home/opc/
-wget https://objectstorage.us-ashburn-1.oraclecloud.com/p/axp5T8m0cF0_p1N832Qo6ImwczP_V6bSQi9ABLti6Ug/n/c4u03/b/labfiles/o/inmemoryscript.sh
-chmod +x /home/opc/inmemoryscript.sh
-nohup /home/opc/inmemoryscript.sh &> setupinmem.out&
+sudo su - oracle << TEST
+cd /home/oracle
+wget https://objectstorage.us-phoenix-1.oraclecloud.com/n/oraclepartnersas/b/InMemory_Workshop/o/labs.zip
+unzip -o /home/oracle/labs.zip
+rm /home/oracle/labs.zip
+chmod +x /home/oracle/labs/inmemory/importssb.sh
+/home/oracle/labs/inmemory/importssb.sh
+TEST
 </copy>
 ````
