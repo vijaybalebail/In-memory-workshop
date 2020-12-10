@@ -13,13 +13,13 @@ It is important to remember that after the In-Memory option is enabled at the in
 
 Step 1.  All scripts for this lab are stored in the labs/inmemory folder and are run as the oracle user.  Let's navigate there now.  We recommend you type the commands to get a feel for working with In-Memory. But we will also allow you to copy the commands via the COPY button.
 
-    ````
+  ````
     <copy>
     sudo su - oracle
     cd ~/labs/inmemory
     ls
     </copy>
-    ````
+  ````
 
 The In-Memory Area is a static pool within the SGA that holds the column format data (also referred to as the In-Memory Column Store). The size of the In-Memory Area is controlled by the initialization parameter INMEMORY\_SIZE (default is 0, i.e. disabled).
 As the IM column store is a static pool, any changes to the INMEMORY\_SIZE parameter will not take effect until the database instance is restarted.
