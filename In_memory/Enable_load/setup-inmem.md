@@ -332,8 +332,9 @@ BONUS      BONUS                DEFAULT
 BONUS      YEAR                 DEFAULT
 
  ````
- Note: Until 20c, Oracle optimizer will not choose the In-Memory table if all the rows in the select and filter are not loaded into memory.
- In 20c, a new feature called hybrid scan will allows optimizer to choose In-Memory table if the filter columns are present and access buffer cache to get rows in the select portion of the query.
+ Note: Oracle optimizer will not choose the In-Memory table if all the rows in the select and filter are not loaded into memory.
+ Starting in 21c, there is a new feature called **HYBRID SCAN**.  In-memory hybrid scans can access some data from the IM column store, and some data from the row store, when not all columns in a table have been populated into the In-Memory Column Store, improving performance by orders of magnitude over pure row store queries.
+
 
  ![](images/IMHybrid.png)
 
