@@ -296,7 +296,7 @@ CREATE TABLE list_customers
 
 By default, all of the columns in an object with the INMEMORY attribute will be populated into the IM column store.
 However, it is possible to populate only a subset of columns. If a table has many columns, but the query only accesses a few columns, then it is possible to load only those columns into InMemory pool. These columns can additionally be loaded with MEMCOMPRESS levels to further conserve memory.
-For example, to enable an existing table for the IM column store, you would use the ALTER table DDL with the INMEMORY clause, along with the in-memory column clause as shown below.
+For example, to enable an existing table for the IM column store, you would use the ALTER table DDL statement with the INMEMORY clause, along with the in-memory column clause as shown below.
   ````
 	. ALTER TABLE … 	INMEMORY (col1)
 	. ALTER TABLE … 	INMEMORY (col1, col2)
@@ -305,20 +305,16 @@ For example, to enable an existing table for the IM column store, you would use 
 	. ALTER TABLE … 	INMEMORY MEMCOMPRESS QUERY HIGH (col2) NO INMEMORY (col3) INMEMORY PRIORITY HIGH
  ````
 14. Enable partial columns for In-Memory.
+
 ````
 <copy>
 ALTER TABLE BONUS INMEMORY  
-INMEMORY (emp_id,bonus,year) NO INMEMORY (id) ;
+INMEMORY    (emp_id,bonus,year)
+NO INMEMORY (id) ;
 </copy>
 ````
 
- 15. For column level information, check V$IM\_COLUMN\_LEVEL to see the columns that are enabled for the IM column store.
- ````
- <copy>
- ALTER TABLE BONUS INMEMORY  INMEMORY (emp_id,bonus,year) NO INMEMORY (id) ;
- </copy>
- ````
- 16. check the In-Memory parameters at column level.
+15. check the In-Memory parameters at column level.
  ````
  <copy>
  col table_name format a10
