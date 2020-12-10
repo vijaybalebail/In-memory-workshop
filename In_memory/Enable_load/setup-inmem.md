@@ -30,7 +30,7 @@ Note :  The default install of database usually set a parameter MEMORY_TARGET wh
     <copy>sqlplus / as sysdba
     show pdbs </copy>
     ````
-    You will observe that you are connect to CDB (Container Database) with one PDB (pluggable Database) preinstalled.
+    You will observe that you are connect to the CDB (Container Database) with one PDB (pluggable Database) preinstalled.
 
 
 3. Next, note the memory settings and enable In-Memory.
@@ -247,15 +247,16 @@ The Oracle environment is already set up so sqlplus can be invoked directly from
 
     You also had an opportunity to populate and view objects in the IM column store and to see how much memory they use. In this Lab we populated about 1471 MB of compressed data into the  IM column store, and the LINEORDER table is the largest of the tables populated with over 23 million rows.  Remember that the population speed depends on the CPU capacity of the system as the in-memory data compression is a CPU intensive operation. The more CPU and processes you allocate the faster the populations will occur.
 
-11. Disabling a table
-    To disable a table for the IM column store, use the NO INMEMORY clause. Once a table is disabled, its information is purged from the data dictionary views, metadata from the IM column store is cleared, and its in-memory column representation invalidated.
+11. To disable a table for the IM column store, use the NO INMEMORY clause. Once a table is disabled, its information is purged from the data dictionary views, metadata from the IM column store is cleared, and its in-memory column representation invalidated.
 
     ````
     <copy>
     ALTER TABLE bonus NO INMEMORY ;
     </copy>
     ````
-    12.	Check the in-memory attributes for table.
+
+12.	Check the in-memory attributes for table.
+
     ````
     <copy>
     SELECT INMEMORY, INMEMORY_PRIORITY, INMEMORY_COMPRESSION, INMEMORY_DISTRIBUTE, INMEMORY_DUPLICATE
