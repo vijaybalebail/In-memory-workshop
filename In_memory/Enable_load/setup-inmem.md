@@ -27,8 +27,7 @@ Note :  The default install of database usually set a parameter MEMORY_TARGET wh
 
 2. Login as sys
     ````
-
-    <copy>sqlplus / as sysdba ;
+    <copy>sqlplus / as sysdba
     show pdbs </copy>
     ````
     You will observe that you are connect to CDB (Container Database) with one PDB (pluggable Database) preinstalled.
