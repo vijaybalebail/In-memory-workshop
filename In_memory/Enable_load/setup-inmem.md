@@ -338,15 +338,16 @@ BONUS      YEAR                 DEFAULT
 
  ![](images/IMHybrid.png)
 
-## Step 4: In-Memory External Tables. (Cloud only)
+## Step 4: In-Memory External Tables. (Cloud and  Engineered Systems only)
 In-Memory External Tables builds on the theme of expanding analytic queries to all data, not just Oracle native data. Oracle Database already supports accessing external data with features like External Tables and Big Data SQL to allow fast and secure SQL query on all types of data. In-Memory External Tables allow essentially any type of data to be populated into the IM column store. This means non-native Oracle data can be analyzed with any data in Oracle Database using Oracle SQL and its rich feature set and also get the benefit of using all of the performance enhancing features of Database In-Memory.
-Currently , this feature is licensed for only Oracle Cloud databases.
+Currently , this feature is licensed for only Oracle Cloud databases and  Engineered Systems.
 
  ![](images/IMExternal.png)
 
-17. Create a external table on a comma separated text file in /home/oracle/labs.
+17. Create an external table on a comma separated text file in /home/oracle/labs.
 
  ````
+ <copy>
  connect / as sysdba
  show pdbs
  alter session set container=orclpdb;
@@ -376,6 +377,7 @@ CREATE TABLE ext_emp  ( ID NUMBER(6), FIRST_NAME VARCHAR2(20),
      )
  REJECT LIMIT UNLIMITED
  INMEMORY;
+ </copy>
 ````
 
 18. Query the table. Note: External tables will not populate upon query..
