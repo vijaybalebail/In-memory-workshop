@@ -5,7 +5,7 @@
 
 ### Lab Preview
 
-Watch a preview video of querying the In-Memory Column Store
+Watch a preview video of In-Memory Column Store features.
 
 [](youtube:eToO3PRIs8k)
 
@@ -78,7 +78,7 @@ Now that you’ve gotten familiar with the IM column store let’s look at the b
     table scans (IM)                                                      1
     ````
 
-    "IM scan CUs columns theoretical max = 748" is count of columns that would be accessed if each scan looked at all columns units (CUs) in all IMCUs for that column.
+    "IM scan CUs columns theoretical max = 748" is the count of columns that would be accessed if each scan looked at all column units (CUs) in all IMCUs for that column.
     There are 17 columns in the table LINEORDER.
     Each column data is held in 748/17 = 44 IMCUs. This information is in "IM scan CUs memcompress for query low".
 
@@ -87,11 +87,11 @@ Now that you’ve gotten familiar with the IM column store let’s look at the b
     If the query had a filter condition , then those CUs would have been accessed too.
 
 
-3.  To execute the same query against the buffer cache you will need to disable the IM column store via a hint called NO\_INMEMORY or at session level and disable INMEMORY\_QUERY.
+3.  To execute the same query against the buffer cache you will need to disable the IM column store either through a hint called NO\_INMEMORY or at session level parameter INMEMORY\_QUERY as the syntax below.
 
-    ````
-    ALTER SESSION SET INMEMORY_QUERY= DIAABLE|ENABLE;
-    ````
+
+    ALTER SESSION SET INMEMORY_QUERY= DISBLE|ENABLE;
+
 
   4. We can run the above query with a hint and note the time and plan.
 

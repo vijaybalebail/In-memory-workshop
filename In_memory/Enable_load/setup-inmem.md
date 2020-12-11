@@ -475,11 +475,12 @@ exec dbms_inmemory_admin.faststart_enable('USERS', FALSE);
 <copy>
  column tablespace_name format a10
  select tablespace_name, status, allocated_size, used_size from
- v$inmemory_faststart_area; </copy>
+ v$inmemory_faststart_area;
+ </copy>
 
 TABLESPACE STATUS     ALLOCATED_SIZE  USED_SIZE
 ---------- ---------- -------------- ----------
-USERS      ENABLE         4206100480 2215837696
+USERS      ENABLE         2368471040 2215837696
 ````
 24. The actual IM FastStart data is written to a SecureFile LOB in the IM FastStart tablespace. You can display the LOB information from the DBA_LOBS view:
 ````
@@ -495,6 +496,8 @@ SYSDBIMFS_LOBSEG$    YES
 ````
 25. To Disable In-Memory FastStart , run the following.
 ````
+<copy>
 exec DBMS_INMEMORY_ADMIN.FASTSTART_DISABLE();
+</copy>
 ````
 We have looked at how we can configure In-Memory pool. Alter table InMemory properties and how to load them. Next we will look at some of the optimizations to speed up queries.
