@@ -87,13 +87,13 @@ Now that you’ve gotten familiar with the IM column store let’s look at the b
     If the query had a filter condition , then those CUs would have been accessed too.
 
 
-3.  To execute the same query against the buffer cache you will need to disable the IM column store either through a hint called NO\_INMEMORY or at session level parameter INMEMORY\_QUERY as the syntax below.
+3.  To execute the same query against the buffer cache you will need to disable the IM column store either through a hint called NO\_INMEMORY or at session level parameter INMEMORY\_QUERY as in the syntax below.
 
 
-    ALTER SESSION SET INMEMORY_QUERY= DISBLE|ENABLE;
+    ALTER SESSION SET INMEMORY_QUERY= DISABLE|ENABLE;
 
 
-  4. We can run the above query with a hint and note the time and plan.
+  4. Rerun the query with NO\_INMEMORY hist with a hint and note the new elapsed time and plan.
 
 
     ````
@@ -199,12 +199,12 @@ Now that you’ve gotten familiar with the IM column store let’s look at the b
 
 Up until now we have been focused on queries that scan only one table, the LINEORDER table. Let’s broaden the scope of our investigation to include joins and parallel execution. This section executes a series of queries that begin with a single join between the  fact table, LINEORDER, and a dimension table and works up to a 5 table join. The queries will be executed in both the buffer cache and the column store, to demonstrate the different ways the column store can improve query performance above and beyond the basic performance benefits of scanning data in a columnar format.
 
-8. Let's switch to the Part2 folder and log back in to the PDB.
+8. Reconnect to SSB user to clear out session level stats
 
    ````
    <copy>
 
-   sqlplus ssb/Ora_DB4U@localhost:1521/orclpdb
+   connect ssb/Ora_DB4U@localhost:1521/orclpdb
    </copy>    
    ````
 
