@@ -141,7 +141,7 @@ Now that you’ve gotten familiar with the IM column store let’s look at the b
 
 
 
-6.  Do you think indexing lo\_orderkey would provide the same performance as the IM column store? There is an invisible index already created on the lo\_orderkey column on the LINEORDER table. By using the parameter OPTIMIZER\_USE\_INVISIBLE_INDEXES we can compare the performance of the IM column store and the index. Let's see how well the index performs.  
+6.  Do you think indexing lo\_orderkey would provide the same performance as the IM column store? For this lab, there is an invisible index already created on the lo\_orderkey column on the LINEORDER table. By using the parameter OPTIMIZER\_USE\_INVISIBLE_INDEXES we can compare the performance of the IM column store and the index. Let's see how well the index performs.  
 
     ````
     <copy>
