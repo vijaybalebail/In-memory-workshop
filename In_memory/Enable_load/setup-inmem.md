@@ -421,14 +421,13 @@ We need to set  QUERY\_REWRITE\_INTEGRITY = STALE_TOLERATED in order for the opt
 
 ````
 <copy>
-conn ssb/Ora_DB4U@localhost:1521/orclpdb
-set linesize 200
-set pages 10
 col plan_table_output format a140
 SELECT count(*) FROM ext_emp ;
 SELECT * FROM table(dbms_xplan.display_cursor());
+
 -- verify we can access INMEMORY in the sql plan.
 ALTER SESSION SET QUERY_REWRITE_INTEGRITY = STALE_TOLERATED;
+
 SELECT count(*) FROM ext_emp;
 SELECT * FROM table(dbms_xplan.display_cursor());
 </copy>
@@ -450,7 +449,7 @@ PLAN_TABLE_OUTPUT
 -------------------------------------------------------------------------------
 
 ````
-Notice that tha plan changed from *TABLE ACCESS FULL* to *EXTERNAL TABLE ACCESS INMEMORY FULL*.
+Notice that tha plan changed from *EXTERNAL TABLE ACCESS FULL* to *EXTERNAL TABLE ACCESS INMEMORY FULL*.
 Note that if you append data to the external file, you will have to repopulate to In-Memory.
 
 ## Step 5: In-Memory FastStart
@@ -461,15 +460,17 @@ The IM FastStart area does not change the behavior of population. Priorities are
 
 So how does this work? The first thing you have to do is to enable IM FastStart. You do this by designating a tablespace that you create as the IM FastStart tablespace. It must be empty and be able to store the contents of the IM column store. Oracle recommends that the tablespace be sized at twice the size of the INMEMORY_SIZE parameter setting.
 
+22. Enable FastStart
+
 ````
 <copy>
 conn / as sysdba
-alter session set container=orclpdb;;
+alter session set container=orclpdb;
 exec dbms_inmemory_admin.faststart_enable('USERS', FALSE);
 </copy>
 ````
 
-verify that that FastStart is enabled.
+23. verify that that FastStart is enabled.
 ````
 <copy>
  column tablespace_name format a10
@@ -480,7 +481,7 @@ TABLESPACE STATUS     ALLOCATED_SIZE  USED_SIZE
 ---------- ---------- -------------- ----------
 USERS      ENABLE         4206100480 2215837696
 ````
-The actual IM FastStart data is written to a SecureFile LOB in the IM FastStart tablespace. You can display the LOB information from the DBA_LOBS view:
+24. The actual IM FastStart data is written to a SecureFile LOB in the IM FastStart tablespace. You can display the LOB information from the DBA_LOBS view:
 ````
 <copy>
 column segment_name format a20
@@ -492,7 +493,7 @@ SEGMENT_NAME         LOGGING
 SYSDBIMFS_LOBSEG$    YES
 
 ````
-To Disable In-Memory FastStart , run the following.
+25. To Disable In-Memory FastStart , run the following.
 ````
 exec DBMS_INMEMORY_ADMIN.FASTSTART_DISABLE();
 ````
