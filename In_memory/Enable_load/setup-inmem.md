@@ -384,10 +384,11 @@ CREATE TABLE ext_emp  ( ID NUMBER(6), FIRST_NAME VARCHAR2(20),
 ````
 <copy>
  select count(*) from  ext_emp;
+ SELECT * FROM table(dbms_xplan.display_cursor());
  </copy>
 ````
 
-19. Confir poplulate external table  and verify its populated.
+19. Confirm external table  and verify its populated.
 
 ````
 <copy>
