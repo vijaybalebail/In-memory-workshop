@@ -387,7 +387,7 @@ CREATE TABLE ext_emp  ( ID NUMBER(6), FIRST_NAME VARCHAR2(20),
  </copy>
 ````
 
-19. poplulate external table  and verify its populated.
+19. Confir poplulate external table  and verify its populated.
 
 ````
 <copy>
