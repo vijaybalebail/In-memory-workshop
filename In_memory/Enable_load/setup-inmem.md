@@ -383,12 +383,14 @@ CREATE TABLE ext_emp  ( ID NUMBER(6), FIRST_NAME VARCHAR2(20),
 18. Query the table. Note: External tables will not populate upon query..
 ````
 <copy>
+ set linesize 200
+ set pages 10
  select count(*) from  ext_emp;
  SELECT * FROM table(dbms_xplan.display_cursor());
  </copy>
 ````
 
-19. Confirm external table  and verify its populated.
+19. Unlike regular tables, external table does not get populated into InMemory even if it has INMEMORY parameter on the external table.
 
 ````
 <copy>
@@ -396,10 +398,17 @@ col owner format A10
 col segment_name format A20
 
 SELECT owner, segment_name, populate_status, con_id FROM v$im_segments where segment_name='EXT_EMP';
+</copy>
+````
+
+20. Populate the external table (manually) and verify.
+````
+<copy>
 EXEC dbms_inmemory.populate ('SSB','EXT_EMP')
+
+
 SELECT owner, segment_name, populate_status, con_id FROM v$im_segments where segment_name='EXT_EMP';
 </copy>
-
 
 OWNER      SEGMENT_NAME         POPULATE_STAT     CON_ID
 ---------- -------------------- ------------- ----------
@@ -407,12 +416,12 @@ SSB        EXT_EMP              COMPLETED              3
 
 ````
 
-20. Query In-Memory external table.
+21. Query In-Memory external table.
 We need to set  QUERY\_REWRITE\_INTEGRITY = STALE_TOLERATED in order for the optimizer to query table from In-Memory.
 
 ````
 <copy>
-conn ssb/Ora_DB4U@orclpdb
+conn ssb/Ora_DB4U@localhost:1521/orclpdb
 set linesize 200
 set pages 10
 col plan_table_output format a140
