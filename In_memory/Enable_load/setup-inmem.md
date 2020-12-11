@@ -401,7 +401,7 @@ SELECT owner, segment_name, populate_status, con_id FROM v$im_segments where seg
 </copy>
 ````
 
-20. Populate the external table (manually) and verify.
+20. Populate the external table (manually) and verify that the population is complete..
 ````
 <copy>
 EXEC dbms_inmemory.populate ('SSB','EXT_EMP')
