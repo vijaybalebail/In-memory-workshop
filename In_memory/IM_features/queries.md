@@ -160,10 +160,10 @@ Now that you’ve gotten familiar with the IM column store let’s look at the b
     @../imstats.sql
     </copy>
     ````
-    We observe that when the index is available on the filter column of the query, the optimizer can choose INDEX RANGE SCAN over INMEMORY FULL TABLE SCAN. In a POC, it is possible not to see significant improvement from InMemory for the queries that are well tuned and indexed. 
+    We observe that when the index is available on the filter column of the query, the optimizer can choose INDEX RANGE SCAN over INMEMORY FULL TABLE SCAN. In a POC, it is possible not to see significant improvement from InMemory for the queries that are well tuned and indexed.
 
 
-7.  Analytical queries have more than one equality WHERE clause predicate. What happens when there are multiple single column predicates on a table? Traditionally you would create a multi-column index. Can storage indexes compete with that?  
+7.  Analytical queries have more than one equality WHERE clause predicate. What happens when there are multiple single column predicates on a table? Traditionally you would create a multi-column index. Can InMemory  compete with that?  
 
     Let’s change our query to look for a specific line item in an order and monitor the session statistics:
 
