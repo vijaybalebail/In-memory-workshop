@@ -112,7 +112,7 @@ Now that you’ve gotten familiar with the IM column store let’s look at the b
       @../imstats.sql
     </copy>
     ````
-    As you can see the query the performance of the query against the IM column store was significantly faster than the traditional buffer cache - why?  
+    As you can see the query against the IM column store was significantly faster than the traditional buffer cache - why?  
 
     The IM column store only has to scan two columns - lo\_ordtotalprice and lo\_quantity - while the row store has to scan all of the columns in each of the rows until it reaches the lo\_ordtotalprice and lo\_quantity columns. The IM column store also benefits from the fact that the data is compressed so the volume of data scanned is much less.  Finally, the column format requires no additional manipulation for SIMD vector processing (Single Instruction processing Multiple Data values). Instead of evaluating each entry in the column one at a time, SIMD vector processing allows a set of column values to be evaluated together in a single CPU instruction.
 
