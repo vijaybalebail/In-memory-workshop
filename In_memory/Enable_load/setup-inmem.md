@@ -390,7 +390,7 @@ CREATE TABLE ext_emp  ( ID NUMBER(6), FIRST_NAME VARCHAR2(20),
  </copy>
 ````
 
-19. Unlike regular tables, external table does not get populated into InMemory even if it has INMEMORY parameter on the external table.
+19. Unlike regular tables, external table does not get populated into InMemory even if it has INMEMORY parameter on the external table. Confirm if it is not populated.
 
 ````
 <copy>
