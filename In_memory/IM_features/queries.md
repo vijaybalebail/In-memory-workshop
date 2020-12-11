@@ -21,7 +21,7 @@ Now that you’ve gotten familiar with the IM column store let’s look at the b
     </copy>
     ````
 
-2.  Let's begin with a simple query:  *What is the most expensive order we have received to date?*  There are no indexes or views setup for this.  So the execution plan will be to do a full table scan of the LINEORDER table.  Note the elapsed time.
+2.  Let's begin with a simple query:  *What is the most expensive order we have received to date?*  There are no indexes or views setup for this.  So the execution plan will be to do a full table scan on the LINEORDER table.  Note the elapsed time.
 
     ````
     <copy>
@@ -141,7 +141,7 @@ Now that you’ve gotten familiar with the IM column store let’s look at the b
 
 
 
-6.  Think indexing lo\_orderkey would provide the same performance as the IM column store? There is an invisible index already created on the lo\_orderkey column of the LINEORDER table. By using the parameter OPTIMIZER\_USE\_INVISIBLE_INDEXES we can compare the performance of the IM column store and the index. Let's see how well the index performs.  
+6.  Think indexing lo\_orderkey would provide the same performance as the IM column store? There is an invisible index already created on the lo\_orderkey column on the LINEORDER table. By using the parameter OPTIMIZER\_USE\_INVISIBLE_INDEXES we can compare the performance of the IM column store and the index. Let's see how well the index performs.  
 
     ````
     <copy>
@@ -298,7 +298,7 @@ Up until now we have been focused on queries that scan only one table, the LINEO
 
    The IM column store continues to out-perform the buffer cache query but what is more interesting is the execution plan for this query:
 
-   In this case, we noted above that three join filters have been created and applied to the scan of the LINEORDER table, one for the join to DATE_DIM table, one for the join to the PART table, and one for the join to the SUPPLIER table. How is Oracle able to apply three join filters when the join order would imply that the LINEORDER is accessed before the SUPPLER table?
+   In this case, we noted above that three join filters have been created and applied to the scan on the LINEORDER table, one for the join to DATE_DIM table, one for the join to the PART table, and one for the join to the SUPPLIER table. How is Oracle able to apply three join filters when the join order would imply that the LINEORDER is accessed before the SUPPLER table?
 
    This is where Oracle’s 30 plus years of database innovation kick in. By embedding the column store into Oracle Database we can take advantage of all of the optimizations that have been added to the database. In this case, the Optimizer has switched from its typically left deep tree to create a right deep tree using an optimization called ‘swap\_join\_inputs’.
 
