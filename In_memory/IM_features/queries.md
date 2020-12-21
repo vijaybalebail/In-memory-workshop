@@ -505,6 +505,8 @@ Verify that the parameter INMEMORY_OPTIMIZED_ARITHMETIC is disabled and run the 
 show parameter INMEMORY_OPTIMIZED_ARITHMETIC
 set timing on
 select /*+ no_result_cache */sum(LO_TAX  ), sum( LO_ORDTOTALPRICE ), sum( LO_REVENUE  ), avg(lo_tax) , avg ( LO_ORDTOTALPRICE) from lineorder;
+set timing off
+ @../imstats.sql
 </copy>
 
 SUM(LO_TAX) SUM(LO_ORDTOTALPRICE) SUM(LO_REVENUE) AVG(LO_TAX)
@@ -567,6 +569,8 @@ ORDER BY FINISH_POP;
  <copy>
  set timing on
  select /*+ no_result_cache */sum(LO_TAX  ), sum( LO_ORDTOTALPRICE ), sum( LO_REVENUE  ), avg(lo_tax) , avg ( LO_ORDTOTALPRICE) from lineorder;
+ set timing off
+  @../imstats.sql
  </copy>
  SUM(LO_TAX) SUM(LO_ORDTOTALPRICE) SUM(LO_REVENUE) AVG(LO_TAX)
 ----------- --------------------- --------------- -----------
