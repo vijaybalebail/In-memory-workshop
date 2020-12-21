@@ -391,7 +391,7 @@ select * from table(dbms_xplan.display_cursor());
 ````
 Notice the statistics that start with "IM scan EU ...". IM expressions are stored in the IM column store in In-Memory Expression Units (IMEUs) rather than IMCUs, and the statistics for accessing IM expressions all show "EU" for "Expression Unit".
 
-You can also confirm that the virtual column is loaded looking up V$IM_IMECOL_CU view.
+You can also confirm that the virtual column is loaded looking up V$IM\_IMECOL\_CU view.
 
 ````
 <copy>
@@ -498,7 +498,29 @@ Not all row sources in the query processing engine have support for the In-Memor
 
 In-Memory Optimized Arithmetic is controlled by the initialization parameter INMEMORY_OPTIMIZED_ARITHMETIC. The parameter values are DISABLE (the default) or ENABLE. When set to ENABLE, all NUMBER columns for tables that use FOR QUERY LOW compression are encoded with the In-Memory optimized format when populated (in addition to the traditional Oracle Database NUMBER data type). Switching from ENABLE to DISABLE does not immediately drop the optimized number encoding for existing IMCUs. Instead, that happens when the IM column store repopulates affected IMCUs.
 
-#### Set
+Verify that the parameter INMEMORY_OPTIMIZED_ARITHMETIC is disabled and run the query below.
+
+````
+<copy>
+show parameter INMEMORY_OPTIMIZED_ARITHMETIC
+set timing on
+select /*+ no_result_cache */sum(LO_TAX  ), sum( LO_ORDTOTALPRICE ), sum( LO_REVENUE  ), avg(lo_tax) , avg ( LO_ORDTOTALPRICE) from lineorder;
+</copy>
+
+SUM(LO_TAX) SUM(LO_ORDTOTALPRICE) SUM(LO_REVENUE) AVG(LO_TAX)
+----------- --------------------- --------------- -----------
+AVG(LO_ORDTOTALPRICE)
+---------------------
+   96000368            4.5337E+14      8.7191E+13  4.00058142
+           18893047.2
+
+
+Elapsed: 00:00:00.92
+
+````
+
+Note the time time the query took with INMEMORY_OPTIMIZED_ARITHMETIC disable. Now let us enable and rerun the query.
+
 ````
 SQL> <copy> show parameter INMEMORY_OPTIMIZED_ARITHMETIC
       alter system set INMEMORY_OPTIMIZED_ARITHMETIC=enable;
@@ -511,13 +533,53 @@ SQL> <copy> show parameter INMEMORY_OPTIMIZED_ARITHMETIC
       SQL> alter system set INMEMORY_OPTIMIZED_ARITHMETIC=enable;
       System altered.
  ````
-Now reload lineorder
+Now reload Lineorder
 ````
 <copy>
 alter table lineorder no inmemory;
 alter table lineorder inmemory ;
-select /*+ noparallel */ count(*) from lineorder ; </copy>
+select /*+ noparallel */ count(*) from lineorder ;
+
+</copy>
 ````
+Verify that the table is completely loaded into memory before running the the query.
+
+````
+<copy>
+col object_name format a20
+SELECT a.OBJECT_NAME, b.INMEMORY_PRIORITY, b.POPULATE_STATUS, count(1) IMCUs,sum(num_rows),
+TO_CHAR(c.CREATETIME, 'MM/DD/YYYY HH24:MI:SS.FF2') START_POP,
+TO_CHAR(MAX(d.TIMESTAMP),'MM/DD/YYYY HH24:MI:SS.FF2') FINISH_POP
+FROM DBA_OBJECTS a, V$IM_SEGMENTS b,
+V$IM_SEGMENTS_DETAIL c, V$IM_HEADER d
+WHERE
+a.OBJECT_NAME = b.SEGMENT_NAME
+AND a.OBJECT_TYPE = 'TABLE'
+AND a.OBJECT_ID = c.BASEOBJ
+AND c.DATAOBJ = d.OBJD
+GROUP BY a.OBJECT_NAME, b.INMEMORY_PRIORITY, b.POPULATE_STATUS, c.CREATETIME
+ORDER BY FINISH_POP;
+/
+</copy>
+````
+ At this point, we have set INMEMORY_OPTIMIZED_ARITHMETIC=enable, and triggered the repopulation of Lineorder table and verified that the loading is complete. Once you see that LINEORDER table status is complete run the query below.
+````
+ <copy>
+ set timing on
+ select /*+ no_result_cache */sum(LO_TAX  ), sum( LO_ORDTOTALPRICE ), sum( LO_REVENUE  ), avg(lo_tax) , avg ( LO_ORDTOTALPRICE) from lineorder;
+ </copy>
+ SUM(LO_TAX) SUM(LO_ORDTOTALPRICE) SUM(LO_REVENUE) AVG(LO_TAX)
+----------- --------------------- --------------- -----------
+AVG(LO_ORDTOTALPRICE)
+---------------------
+   96000368            4.5337E+14      8.7191E+13  4.00058142
+           18893047.2
+
+Elapsed: 00:00:00.12
+````
+
+In our case the query timing reduced from 0.92 to 0.12 seconds. Although its 7 times faster(.92/.12 = 7), the dataset in this case is small and since data is already in memory, computation is fast to begin with. While for larger tables, the performance benefit is significant, the table will need to be loaded in COMPRESS QUERY LOW mode which will occupy more memory. So, this feature will need to have cost and benefit analysis done and it depends on how many querys you have aggregation and aggregation groupings.
+
 
 
 ## Conclusion
