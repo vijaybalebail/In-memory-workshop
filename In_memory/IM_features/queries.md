@@ -317,7 +317,7 @@ Up until now we have been focused on queries that scan only one table, the LINEO
 
    There are actually two types of IM expressions:
   - a user-defined In-Memory virtual column (IM virtual column) that meets the requirements of an IM expression.
-  - an automatically detected IM expressions which are stored as a hidden virtual column when captured.
+  - an automatically detected IM expression which is stored as a hidden virtual column when captured.
 
     User-defined virtual column.
    Oracle tables support creation of virtual columns. They do not take any storage space and are computed during query. However, In-Memory can now store such columns. This will enable us to speed the query further by elimination of CPU cycles for queries.
