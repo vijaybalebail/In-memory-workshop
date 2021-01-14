@@ -316,8 +316,8 @@ Up until now we have been focused on queries that scan only one table, the LINEO
    In-Memory Expressions (IM expressions) provide the ability to materialize simple deterministic expressions and store them in the In-Memory column store so they only need to be calculated once, not each time they are accessed. They are also treated like any other column in the IM column store so the database can scan and filter those columns and take advantage of all Database In-Memory query optimizations like SIMD vector processing and IM storage indexes.
 
    There are actually two types of IM expressions,
-  .  a user-defined In-Memory virtual column (IM virtual column) that meets the requirements of an IM expression, and
-  .  automatically detected IM expressions which are stored as a hidden virtual column when captured.
+  - a user-defined In-Memory virtual column (IM virtual column) that meets the requirements of an IM expression, and
+  - automatically detected IM expressions which are stored as a hidden virtual column when captured.
 
     User-defined virtual column.
    Oracle tables support creation of virtual columns. They do not take any storage space and are computed during query. However, In-Memory can now store such columns. This will enable us to speed the query further by elimination of CPU cycles for queries.
@@ -340,7 +340,7 @@ Up until now we have been focused on queries that scan only one table, the LINEO
    </copy>
    ````
    When the query runs in memory with Expression Optimization, a new statistic  <b> IM Scan EU </b> is used to moniter.
-   In our query, since we did not enable 
+   In our query, since we did not enable
 
    Notice the following expression in the query:
 
