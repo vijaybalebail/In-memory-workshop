@@ -87,18 +87,18 @@ Now that you’ve gotten familiar with the IM column store let’s look at the b
     If the query had a filter condition , then those CUs would have been accessed too.
 
 
-3.  To execute the same query against the buffer cache you will need to disable the IM column store either through a hint called NO\_INMEMORY or at session level parameter INMEMORY\_QUERY as in the syntax below.
+    To execute the same query against the buffer cache you will need to disable the IM column store either through a hint called NO\_INMEMORY or at session level parameter INMEMORY\_QUERY as in the syntax below.
 
 
     ALTER SESSION SET INMEMORY_QUERY= DISABLE|ENABLE;
 
 
-  4. Rerun the query with NO\_INMEMORY hint and note the new elapsed time and plan.
-
+  3. Rerun the query with NO\_INMEMORY hint and note the new elapsed time and plan.
 
     ````
     <copy>
-      set timing on
+    connect ssb/Ora_DB4U@localhost:1521/orclpdb
+    set timing on
 
       select /*+ NO_INMEMORY */
       max(lo_ordtotalprice) most_expensive_order,
@@ -240,6 +240,7 @@ Up until now we have been focused on queries that scan only one table, the LINEO
 
    ````
    <copy>
+   connect ssb/Ora_DB4U@localhost:1521/orclpdb
    set timing on
 
    select /*+ NO_INMEMORY */
