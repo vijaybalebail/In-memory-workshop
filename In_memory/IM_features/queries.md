@@ -300,7 +300,7 @@ Up until now we have been focused on queries that scan only one table, the LINEO
 ## Step 4: In-Memory Join Group
 
    A new In-Memory feature called Join Groups was introduced with the Database In-Memory Option in Oracle Database 12.2.  Join Groups can be created to significantly speed up hash join performance in an In-Memory execution plan.  Creating a Join Group involves identifying up-front the set of join key columns (across any number of tables) likely to be joined with by subsequent queries.  
-    For the above example, we can create a In-Memory Join Group on the join column l.lo_orderdate = d.d_datekey.
+    For the above example, we can create a In-Memory Join Group on the join column l.lo\_orderdate = d.d\_datekey.
     If you observe a HASH JOIN plan for inmemory, there are 2 operations. One is *JOIN FILTER CREATE* for  Bloom filter. The other is *JOIN FILTER USE* to consume it. Pre-creating the *Join Group* increases the performance of queries by using the prebuilt Join groups.
 11.
    ````
