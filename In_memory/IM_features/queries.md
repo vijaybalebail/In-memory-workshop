@@ -236,7 +236,7 @@ Up until now we have been focused on queries that scan only one table, the LINEO
 
    The IM column store has no problem executing a query with a join because it is able to take advantage of Bloom Filters.  It’s easy to identify Bloom filters in the execution plan. They will appear in two places, at creation time and again when it is applied. The Bloon filter plans start with <b> :BF00X </b> plan above. You can also see what join condition was used to build the Bloom filter by looking at the predicate information under the plan.
 
-9. Let's run against the buffer cache now.  
+9. Let's run against the buffer cache now and observer that it is a lot slower.  
 
    ````
    <copy>
@@ -290,10 +290,6 @@ Up until now we have been focused on queries that scan only one table, the LINEO
    @../imstats.sql
    </copy>
    ````
-
-   ![](images/num4a.png)
-
-   ![](images/num4b.png)
 
    The IM column store continues to out-perform the buffer cache query but what is more interesting is the execution plan for this query:
 
