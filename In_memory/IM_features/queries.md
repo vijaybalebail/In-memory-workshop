@@ -340,7 +340,7 @@ Up until now we have been focused on queries that scan only one table, the LINEO
    @../imstats.sql
    </copy>
    ````
-   When the query runs in memory with Expression Optimization, a new statistic  <b> IM Scan EU </b> is used to moniter.
+   When the query runs in memory with Expression Optimization, a new statistic  <b> IM Scan EU </b> is used.
    In our query, since we did not enable
 
    Notice the following expression in the query:
