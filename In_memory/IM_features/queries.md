@@ -320,8 +320,8 @@ Up until now we have been focused on queries that scan only one table, the LINEO
   - an automatically detected IM expression which is stored as a hidden virtual column when captured.
 
    <b>User-defined virtual column</b>
-   
-   Oracle tables support creation of virtual columns. They do not take any storage space and are computed during query. However, In-Memory can now store such columns. This will enable us to speed the query further by elimination of CPU cycles for queries.
+
+   Oracle tables support the creation of virtual columns which do not take any storage space and are computed during query. However, In-Memory can now store such columns. This will enable us to speed the query further by elimination of CPU cycles for queries.
    The detected IM expressions are captured in the new Expression Statistics Store (ESS). IM expressions are fully documented in the In-Memory Guide.
 
  12. Run a query with an expression in select statement without enabling expression optimization.
