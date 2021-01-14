@@ -188,7 +188,7 @@ Now that you’ve gotten familiar with the IM column store let’s look at the b
     </copy>
     ````
     You can see that the *TABLE ACCESS INMEMORY FULL*  is used even through there is an INDEX on lo_orderkey. In fact, INMEMORY may reduce the need to have multiple indexes on the Database.
-    This not only speeds up analytic query with fewer indexes, but also improve DML and load performance due to fewer indexes.
+    *This not only speeds up analytic query with fewer indexes, but also improve DML and load performance due to fewer indexes.*
 
     ![](images/num6.png)   
 
