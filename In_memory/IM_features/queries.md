@@ -93,7 +93,7 @@ Now that you’ve gotten familiar with the IM column store let’s look at the b
     ALTER SESSION SET INMEMORY_QUERY= DISABLE|ENABLE;
 
 
-  4. Rerun the query with NO\_INMEMORY hist with a hint and note the new elapsed time and plan.
+  4. Rerun the query with NO\_INMEMORY hint and note the new elapsed time and plan.
 
 
     ````
