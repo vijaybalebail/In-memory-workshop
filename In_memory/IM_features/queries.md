@@ -295,7 +295,7 @@ Up until now we have been focused on queries that scan only one table, the LINEO
 
    In this case, we noted that three join filters have been created <b>(:KV000X)</b> and applied to the scan on the LINEORDER table, one for the join to DATE_DIM table, one for the join to the PART table, and one for the join to the SUPPLIER table. How is Oracle able to apply three join filters when the join order would imply that the LINEORDER is accessed before the SUPPLER table?
 
-   This is where Oracle’s 30 plus years of database innovation kick in. By embedding the column store into Oracle Database we can take advantage of all of the optimizations that have been added to the database. In this case, the Optimizer has switched from its typically left deep tree to create a right deep tree using an optimization called ‘swap\_join\_inputs’.
+   This is where Oracle’s 30 plus years of database innovation kicks in. By embedding the column store into Oracle Database we can take advantage of all of the optimizations that have been added to the database. In this case, the Optimizer has switched from its typically left deep tree to create a right deep tree using an optimization called ‘swap\_join\_inputs’.
 
 ## Step 4: In-Memory Join Group
 
