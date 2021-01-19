@@ -324,8 +324,7 @@ Up until now we have been focused on queries that scan only one table, the LINEO
    Oracle tables support the creation of virtual columns which do not take any storage space and are computed during query. However, In-Memory can now store virtual columns. This will enable us to speed the query further by elimination of CPU cycles for computing expressions.
    The detected IM expressions are captured in the new Expression Statistics Store (ESS). IM expressions are fully documented in the In-Memory Guide.
 
- 12. Run a select statement with an expression without enabling expression optimization.
-
+12. Run a select statement with an expression without enabling expression optimization.
    ````
    <copy>
    set timing on
@@ -351,7 +350,9 @@ Up until now we have been focused on queries that scan only one table, the LINEO
 
 This expression is simply an arithmetic expression to find the total price charged with discount and tax included, and is deterministic. We will create a virtual column and re-populate the LINEORDER table to see what difference it makes.
 
- 13. To make sure that we populate virtual columns in the IM column store we need to ensure that the initialization parameter INMEMORY_VIRTUAL_COLUMNS is set to ENABLE or MANUAL. The default is MANUAL which means that you must explicitly set the virtual columns as INMEMORY enabled. Set it to enable at table level.
+ 13. To populate virtual columns in the IM column store we need to ensure that the initialization parameter INMEMORY\_VIRTUAL\_COLUMNS is set to ENABLE.
+
+  The default is MANUAL which means that you must explicitly set the virtual columns as INMEMORY enabled. Set it to enable at table level.
 ````
  SQL> <copy> show parameter INMEMORY_VIRTUAL_COLUMNS
        alter system set inmemory_virtual_columns=enable;
@@ -417,8 +418,8 @@ This simple example shows that even relatively simple expressions can be computa
   ------------------------------------ ----------- ------------------------------
   inmemory_expressions_usage           string      ENABLE
   ````
- #### Let us restore the lineorder table and drop the virtual column.
-18.
+
+18.   Let us restore the lineorder table and drop the virtual column.
  ````
  <copy>
  alter table lineorder no inmemory;
@@ -433,7 +434,8 @@ For the window function, we use dbms_inmemory_admin.ime_open_capture_window() to
 dbms_inmemory_admin.ime_close_capture_window() to stop capturing the inmemory expression and run
 dbms_inmemory_admin.ime_capture_expressions('WINDOW') to automatically generate automatic In-Memory expressions.
 The other alternative is to run dbms_inmemory_admin.ime_capture_expressions('CURRENT') which will capture the expressions from the shared pool.
-19.
+19. In our example, we will capture the sqls from shared pool using the "CURRENT" expression.
+
   ````
   <copy>
   set timing on
@@ -500,8 +502,9 @@ number format enables native calculations in hardware for segments compressed wi
 Not all row sources in the query processing engine have support for the In-Memory optimized number format so the IM column store stores both the traditional Oracle Database NUMBER data type and the In-Memory optimized number type. This dual storage increases the space overhead, sometimes up to 15%.
 
 In-Memory Optimized Arithmetic is controlled by the initialization parameter INMEMORY_OPTIMIZED_ARITHMETIC. The parameter values are DISABLE (the default) or ENABLE. When set to ENABLE, all NUMBER columns for tables that use FOR QUERY LOW compression are encoded with the In-Memory optimized format when populated (in addition to the traditional Oracle Database NUMBER data type). Switching from ENABLE to DISABLE does not immediately drop the optimized number encoding for existing IMCUs. Instead, that happens when the IM column store repopulates affected IMCUs.
+If you deed to manully drop the expressions, then  DBMS_INMEMORY_ADMIN.IME_DROP_ALL_EXPRESSIONS procedure drops all SYS_IME expression virtual columns in the database. The DBMS_INMEMORY.IME_DROP_EXPRESSIONS procedure drops a specified set of SYS_IME virtual columns from a table.
 
-23. Verify that the parameter INMEMORY_OPTIMIZED_ARITHMETIC is disabled and run the query below.
+23. Verify that the parameter INMEMORY\_OPTIMIZED\_ARITHMETIC is disabled and run the query below.
 
 ````
 <copy>
@@ -524,7 +527,7 @@ Elapsed: 00:00:00.92
 
 ````
 
-Note the time time the query took with INMEMORY_OPTIMIZED_ARITHMETIC disable. Now let us enable and rerun the query.
+Note the time time the query took with INMEMORY\_OPTIMIZED\_ARITHMETIC disable. Now let us enable and rerun the query.
 
 24.
 ````
@@ -568,7 +571,7 @@ ORDER BY FINISH_POP;
 /
 </copy>
 ````
-27.  At this point, we have set INMEMORY_OPTIMIZED_ARITHMETIC=enable, and triggered the repopulation of Lineorder table and verified that the loading is complete. Once you see that LINEORDER table status is complete run the query below.
+27.  At this point, we have set INMEMORY\_OPTIMIZED\_ARITHMETIC=enable, and triggered the repopulation of Lineorder table and verified that the loading is complete. Once you see that LINEORDER table status is complete run the query below.
 ````
  <copy>
  set timing on
@@ -586,7 +589,7 @@ AVG(LO_ORDTOTALPRICE)
 Elapsed: 00:00:00.12
 ````
 
-In our case the query timing reduced from 0.92 to 0.12 seconds. Although its 7 times faster(.92/.12 = 7), the dataset in this case is small and since data is already in memory, computation is fast to begin with. While for larger tables, the performance benefit is significant, the table will need to be loaded in COMPRESS QUERY LOW mode which will occupy more memory. So, this feature will need to have cost and benefit analysis done and it depends on how many querys you have aggregation and aggregation groupings.
+In our case the query timing reduced from 0.92 to 0.12 seconds. Although its 7 times faster(.92/.12 = 7), the dataset in this case is small and since data is already in memory, computation is fast to begin with. While for larger tables, the performance benefit is significant, the table will need to be loaded in COMPRESS QUERY LOW mode which will occupy more memory. So, this feature will need to have cost and benefit analysis done and it depends on how many queries you have aggregation and aggregation groupings.
 
 
 
