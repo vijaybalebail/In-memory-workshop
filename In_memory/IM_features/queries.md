@@ -317,7 +317,9 @@ Up until now we have been focused on queries that scan only one table, the LINEO
    Oracle tables support the creation of virtual columns which do not take any storage space and are computed during query. However, In-Memory can now store virtual columns. This will enable us to speed the query further by elimination of CPU cycles for computing expressions.
    The detected IM expressions are captured in the new Expression Statistics Store (ESS). IM expressions are fully documented in the In-Memory Guide.
 
-12. Run a select statement with an expression without enabling expression optimization.
+   12. fdfdsfd
+
+ 12. Run a select statement with an expression without enabling expression optimization.
    ````
    <copy>
    set timing on
