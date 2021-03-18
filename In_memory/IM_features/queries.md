@@ -105,7 +105,7 @@ Now that you’ve gotten familiar with the IM column store let’s look at the b
     @../imstats.sql
     </copy>
     ````
-    As you can see this run took longer and the CPU cost of running the query is significantly high
+    As you can see this run took longer and the CPU cost of running the query is significantly high.
 
     The IM column store only has to scan two columns - lo\_ordtotalprice and lo\_quantity - while the row store has to scan all of the columns in each of the rows until it reaches the lo\_ordtotalprice and lo\_quantity columns. The IM column store also benefits from the fact that the data is compressed so the volume of data scanned is much less.  Finally, the column format requires no additional manipulation for SIMD vector processing (Single Instruction processing Multiple Data values). Instead of evaluating each entry in the column one at a time, SIMD vector processing allows a set of column values to be evaluated together in a single CPU instruction.
 
@@ -153,7 +153,7 @@ Now that you’ve gotten familiar with the IM column store let’s look at the b
     @../imstats.sql
     </copy>
     ````
-    We observe that when the index is available on the filter column of the query, the optimizer can choose INDEX RANGE SCAN over INMEMORY FULL TABLE SCAN. *In a POC, it is possible not to see significant improvement from InMemory for the queries that are well tuned and indexed.*
+    We observe that when the index is available on the filter column of the query, the optimizer can choose INDEX RANGE SCAN over INMEMORY FULL TABLE SCAN. The CPU cost for Index scan in this case is also lower than InMemory scan. *In a POC, it is possible not to see significant improvement from InMemory for the queries that are well tuned and indexed.*
 
 
 6.  Analytical queries have more than one equality WHERE clause predicate. What happens when there are multiple single column predicates on a table? Traditionally you would create a multi-column index. Can InMemory  compete with that?  
