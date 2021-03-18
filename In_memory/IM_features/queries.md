@@ -111,7 +111,36 @@ Now that you’ve gotten familiar with the IM column store let’s look at the b
 
       @../imstats.sql
     </copy>
-    ````
+    MOST_EXPENSIVE_ORDER	      TOTAL_ITEMS
+-------------------- --------------------
+	    55279127		612025456
+Elapsed: 00:00:04.74
+SQL> SQL> SQL>
+PLAN_TABLE_OUTPUT
+--------------------------------------------------------------------------------
+SQL_ID	8m8gydugrv5sr, child number 0
+-------------------------------------
+  select /*+ NO_INMEMORY */   max(lo_ordtotalprice)
+most_expensive_order,	sum(lo_quantity) total_items   from   LINEORDER
+Plan hash value: 2267213921
+--------------------------------------------------------------------------------
+| Id  | Operation	   | Name      | Rows  | Bytes | Cost (%CPU)| Time     |
+--------------------------------------------------------------------------------
+|   0 | SELECT STATEMENT   |	       |       |       | 48865 (100)|	       |
+|   1 |  SORT AGGREGATE    |	       |     1 |     9 |	    |	       |
+|   2 |   TABLE ACCESS FULL| LINEORDER |    23M|   205M| 48865	 (1)| 00:00:02 |
+--------------------------------------------------------------------------------
+15 rows selected.
+SQL> SQL>
+NAME								  VALUE
+-------------------------------------------------- --------------------
+CPU used by this session					    235
+IM scan segments disk						      1
+physical reads							 178681
+session logical reads						 181407
+session pga memory					       12779928
+SQL>
+````
     As you can see the query against the IM column store was significantly faster than the traditional buffer cache - why?  
 
     The IM column store only has to scan two columns - lo\_ordtotalprice and lo\_quantity - while the row store has to scan all of the columns in each of the rows until it reaches the lo\_ordtotalprice and lo\_quantity columns. The IM column store also benefits from the fact that the data is compressed so the volume of data scanned is much less.  Finally, the column format requires no additional manipulation for SIMD vector processing (Single Instruction processing Multiple Data values). Instead of evaluating each entry in the column one at a time, SIMD vector processing allows a set of column values to be evaluated together in a single CPU instruction.
@@ -487,7 +516,7 @@ set autotrace off
 ````
 
    How to tell if the IM expression has actually been populated? There is another view, V$IM_IMECOL_CU that shows the columns populated and number of IMEUs they occupy.
-
+   To drop expressions, DBMS_INMEMORY_ADMIN.IME_DROP_ALL_EXPRESSIONS procedure drops all SYS_IME expression virtual columns in the database. The DBMS_INMEMORY.IME_DROP_EXPRESSIONS procedure drops a specified set of SYS_IME virtual columns from a table.
 
 ## Step 6: In-Memory Optimized Arithmetic
 
@@ -502,7 +531,7 @@ number format enables native calculations in hardware for segments compressed wi
 Not all row sources in the query processing engine have support for the In-Memory optimized number format so the IM column store stores both the traditional Oracle Database NUMBER data type and the In-Memory optimized number type. This dual storage increases the space overhead, sometimes up to 15%.
 
 In-Memory Optimized Arithmetic is controlled by the initialization parameter INMEMORY_OPTIMIZED_ARITHMETIC. The parameter values are DISABLE (the default) or ENABLE. When set to ENABLE, all NUMBER columns for tables that use FOR QUERY LOW compression are encoded with the In-Memory optimized format when populated (in addition to the traditional Oracle Database NUMBER data type). Switching from ENABLE to DISABLE does not immediately drop the optimized number encoding for existing IMCUs. Instead, that happens when the IM column store repopulates affected IMCUs.
-If you deed to manully drop the expressions, then  DBMS_INMEMORY_ADMIN.IME_DROP_ALL_EXPRESSIONS procedure drops all SYS_IME expression virtual columns in the database. The DBMS_INMEMORY.IME_DROP_EXPRESSIONS procedure drops a specified set of SYS_IME virtual columns from a table.
+
 
 23. Verify that the parameter INMEMORY\_OPTIMIZED\_ARITHMETIC is disabled and run the query below.
 
