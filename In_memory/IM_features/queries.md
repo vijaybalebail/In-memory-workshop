@@ -309,10 +309,9 @@ Up until now we have been focused on queries that scan only one table, the LINEO
    In-Memory Expressions (IM expressions) provide the ability to materialize simple deterministic expressions and store them in the In-Memory column store so they only need to be calculated once, not each time they are accessed. They are also treated like any other column in the IM column store so the database can scan and filter those columns and take advantage of all Database In-Memory query optimizations like SIMD vector processing and IM storage indexes.
 
    There are actually two types of IM expressions:
-    <b>automatically detected IM expression </b> which is stored as a hidden virtual column when captured.
-    <b> user-defined In-Memory virtual column </b> (IM virtual column) that meets the requirements of an IM expression.
+    <b>Automatically detected IM expression </b> which is stored as a hidden virtual column when captured.
+    <b> User-defined expressions on In-Memory virtual column </b> (IM virtual column) that meets the requirements of an IM expression.
     The detected IM expressions are captured in the new Expression Statistics Store (ESS). IM expressions are fully documented in the In-Memory Guide.
-
 
 
  12. Run a select statement with an expression without enabling expression optimization.
