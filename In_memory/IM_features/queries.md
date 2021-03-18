@@ -97,8 +97,15 @@ Now that you’ve gotten familiar with the IM column store let’s look at the b
 
     ````
     <copy>
+    connect ssb/Ora_DB4U@localhost:1521/orclpdb
+    set timing on
+    select /*+ NOINMEMORY */ max(loordtotalprice) mostexpensiveorder, sum(loquantity) totalitems from LINEORDER;
+    set timing off
+    select * from table(dbmsxplan.displaycursor());
+    @../imstats.sql
+    </copy>
     ````
-    As you can see this run took longer and the CPU cost of running the query has significantly higher.
+    As you can see this run took longer and the CPU cost of running the query is significantly high
 
     The IM column store only has to scan two columns - lo\_ordtotalprice and lo\_quantity - while the row store has to scan all of the columns in each of the rows until it reaches the lo\_ordtotalprice and lo\_quantity columns. The IM column store also benefits from the fact that the data is compressed so the volume of data scanned is much less.  Finally, the column format requires no additional manipulation for SIMD vector processing (Single Instruction processing Multiple Data values). Instead of evaluating each entry in the column one at a time, SIMD vector processing allows a set of column values to be evaluated together in a single CPU instruction.
 
