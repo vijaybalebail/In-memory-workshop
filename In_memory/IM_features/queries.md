@@ -97,51 +97,8 @@ Now that you’ve gotten familiar with the IM column store let’s look at the b
 
     ````
     <copy>
-    connect ssb/Ora_DB4U@localhost:1521/orclpdb
-    set timing on
-
-      select /*+ NO_INMEMORY */
-      max(lo_ordtotalprice) most_expensive_order,
-      sum(lo_quantity) total_items
-      from
-      LINEORDER;
-      set timing off
-
-      select * from table(dbms_xplan.display_cursor());
-
-      @../imstats.sql
-    </copy>
-    MOST_EXPENSIVE_ORDER	      TOTAL_ITEMS
--------------------- --------------------
-	    55279127		612025456
-Elapsed: 00:00:04.74
-SQL> SQL> SQL>
-PLAN_TABLE_OUTPUT
---------------------------------------------------------------------------------
-SQL_ID	8m8gydugrv5sr, child number 0
--------------------------------------
-  select /*+ NO_INMEMORY */   max(lo_ordtotalprice)
-most_expensive_order,	sum(lo_quantity) total_items   from   LINEORDER
-Plan hash value: 2267213921
---------------------------------------------------------------------------------
-| Id  | Operation	   | Name      | Rows  | Bytes | Cost (%CPU)| Time     |
---------------------------------------------------------------------------------
-|   0 | SELECT STATEMENT   |	       |       |       | 48865 (100)|	       |
-|   1 |  SORT AGGREGATE    |	       |     1 |     9 |	    |	       |
-|   2 |   TABLE ACCESS FULL| LINEORDER |    23M|   205M| 48865	 (1)| 00:00:02 |
---------------------------------------------------------------------------------
-15 rows selected.
-SQL> SQL>
-NAME								  VALUE
--------------------------------------------------- --------------------
-CPU used by this session					    235
-IM scan segments disk						      1
-physical reads							 178681
-session logical reads						 181407
-session pga memory					       12779928
-SQL>
-````
-    As you can see the query against the IM column store was significantly faster than the traditional buffer cache - why?  
+    ````
+    As you can see this run took longer and the CPU cost of running the query has significantly higher.
 
     The IM column store only has to scan two columns - lo\_ordtotalprice and lo\_quantity - while the row store has to scan all of the columns in each of the rows until it reaches the lo\_ordtotalprice and lo\_quantity columns. The IM column store also benefits from the fact that the data is compressed so the volume of data scanned is much less.  Finally, the column format requires no additional manipulation for SIMD vector processing (Single Instruction processing Multiple Data values). Instead of evaluating each entry in the column one at a time, SIMD vector processing allows a set of column values to be evaluated together in a single CPU instruction.
 
