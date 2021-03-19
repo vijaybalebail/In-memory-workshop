@@ -148,11 +148,11 @@ Once the load operation (direct path or non-direct path) has been committed, the
 
 	From the above output, observe that PART1 so far has 17 extents, 256 allocated on-disk blocks (BLOCKS) and 244 used blocks (DATABLOCKS), All rows in 244 blocks on disk are loaded into the IM column store (BLOCKSINMEM).
 
-  Note: If the table does not have PRIORITY ENABLED and you execute another Bulk Load, then those segments will be populated either during the next query or when you execute DBMS_INMEMORY.POPULATE (Step 10 ).
+  Note: If the table does not have PRIORITY ENABLED and you execute another Bulk Load, then those segments will be populated either during the next query or when you execute DBMS_INMEMORY.POPULATE (Step 10).
 
 ## Step 2: DML and Trickle repopulation.
 
- We now understand that the Data population to InMemory happens to new extents( Bulk Load and Direct Path Loads). However, if data is not inserted into new data extents on disks, but inserted or updated in the existing data blocks in the free space within the data blocks, then this data is not immediately loaded into InMemory. Oracle creates  a transactional journal. The Snapshot Metadata Unit (SMU) associated with each IMCU tracks row modifications in a transaction journal. If a query accesses the data, and discovers modified rows, then it can obtain the corresponding rowids from the transaction journal, and then retrieve the modified rows from the buffer cache. As the number of modifications increase, so do the size of SMUs, and the amount of data that must be fetched from the transaction journal or database buffer cache. To avoid degrading query performance through journal access, background processes repopulate modified objects.
+ We now understand that the Data population to InMemory happens to new extents (Bulk Load and Direct Path Loads). However, if data is not inserted into new data extents on disks, but inserted or updated in the existing data blocks in the free space within the data blocks, then this data is not immediately loaded into In-Memory. Oracle creates  a transactional journal. The Snapshot Metadata Unit (SMU) associated with each IMCU tracks row modifications in a transaction journal. If a query accesses the data, and discovers modified rows, then it can obtain the corresponding rowids from the transaction journal, and then retrieve the modified rows from the buffer cache. As the number of modifications increase, so do the size of SMUs, and the amount of data that must be fetched from the transaction journal or database buffer cache. To avoid degrading query performance through journal access, background processes repopulate modified objects.
 
 13.	Load a few rows into PART1 via IAS (Insert as Select). Commit the changes so they become visible to the IM column store.
     ````
@@ -198,7 +198,7 @@ Once the load operation (direct path or non-direct path) has been committed, the
     ````
 
 16. As you observe from the above output, no new extents were added as only a few rows were loaded (1000 rows). The table hasn’t grown its on-disk footprint, and still has 17 extents, 244 DATABLOCKS and 244 BLOCKSINMEM.
-If the table would have grown its on-disk footprint, the rows in the new extents will not be automatically populated into the column store, unless a non-default PRIOIRTY is specified or the table gets accessed, or the procedure DBMS_INMEMORY.PROPULATE is used.
+If the table would have grown its on-disk footprint, the rows in the new extents would not have been automatically populated into the column store, unless a non-default PRIOIRTY is specified or the table got accessed, or the procedure DBMS_INMEMORY.PROPULATE is used.
 If the new rows get added to existing extents/blocks, the new rows should be populated to the IM column store via the *Trickle Repopulate process*, even when a default PRIORITY is specified on the table.
 
 17.	Check the V$IM_SEGMENTS view and observe the value in BYTES_NOT_POPULATED column. Do you think a 0 in this column indicate that all the new rows have been added to the column store ?
