@@ -230,10 +230,22 @@ Next, check if the newly added rows got populated to the IM column store using V
     OBJECT_NAM PREPOPULATED REPOPULATED TRICKLE_REPOPULATED NUM_DISK_EXTENTS NUM_BLOCKS   NUM_ROWS   NUM_COLS
     ---------- ------------ ----------- ------------------- ---------------- ---------- ---------- ----------
     PART1                 0           1                   1               17        244      11000          9
+</copy>
+````
 
 
+Below are the observations from the above output:
+-	There is only one IMCU (evident from the presence of only a single row in the output).
+- 	The number of on-disk rows mapped to this IMCU is 11000, which means that the newly added 1000 rows were also recorded in the journal.
+- A total of 17 disk extents have been mapped to this IMCU.
+- The REPOPULATED flag and the TRICKLE_REPOPULATED flag for this IMCU has been set to 1 (indicating that the trickle repopulate process has synchronized the changes).
+- The trickle repopulate process must have populated the last 1000 rows.
 
+Note : When inserting data through direct path load, the data is inserted into newer extents. This data will be populated automatically if table PRIORITY is set. If no PRIORITY is set, Loading is triggered when the table is queried by a SQL statement or when we use DBMS_INMEMORY.POPULATE( Step 10 )
 
+19. Run the following query to view Population status and the number of IMCUs of all the In-Memory tables.
+    ````
+    <copy>
     SELECT a.OBJECT_NAME, b.INMEMORY_PRIORITY, b.POPULATE_STATUS, COUNT(1) IMCUs, SUM(num_rows),
     TO_CHAR(c.CREATETIME, 'MM/DD/YYYY HH24:MI:SS.FF2') START_POP, TO_CHAR(MAX(d.TIMESTAMP),'MM/DD/YYYY HH24:MI:SS.FF2') FINISH_POP FROM DBA_OBJECTS a, V$IM_SEGMENTS b,
     V$IM_SEGMENTS_DETAIL c, V$IM_HEADER d
@@ -245,16 +257,6 @@ Next, check if the newly added rows got populated to the IM column store using V
     GROUP BY a.OBJECT_NAME, b.INMEMORY_PRIORITY, b.POPULATE_STATUS, c.CREATETIME ORDER BY FINISH_POP;
     </copy>
     ````
-
-Below are the observations from the above output:
--	There is only one IMCU (evident from the presence of only a single row in the output).
-- 	The number of on disk rows mapped to this IMCU is 11000, which means that the newly added 1000 rows were also recorded in the journal.
-- A total of 17 disk extents have been mapped to this IMCU.
-- The REPOPULATED flag and the TRICKLE_REPOPULATED flag for this IMCU has been set to 1 (indicating that the trickle repopulate process has synchronized the changes).
-- The trickle repopulate process must have populated the last 1000 rows.
-
-Note : When inserting data through direct path load, the data is inserted into newer extents. These data will be populated automatically if table PRIORITY is set. If no PRIORITY is set, Loading is triggered when the table is queried by a SQL statement or when we use DBMS_INMEMORY.POPULATE( Step 10 )
-
 
 ## Step 3: In-Memory workload Query Performance.
 
