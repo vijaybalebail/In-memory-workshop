@@ -76,7 +76,7 @@ Once the load operation (direct path or non-direct path) has been committed, the
     no rows selected
     ````
 
-7.	Notice that SALES1 still did not get populated even though you had performed a COMMIT. Why?
+7.	Notice that PART1 still did not get populated even though you had performed a COMMIT. Why?
     This is because the initial population is only triggered by querying the table via full table scan, using DBMS_INMEMORY.POPULATE or by specifying the PRIORITY clause, none of which was done in this case.
 
 8.	Next, check the following session statistics:
