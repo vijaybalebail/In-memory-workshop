@@ -4,9 +4,8 @@
 
 In a OLTP production environment, it is common to expect the datbase to run 1000s of transactions with very little toleration to poor throughput. In such environments, running reports and analytical queries can take a lot of resources and can bring down the throughput of the system. In such cases, it is a common strategy to make a redundant copy of data in a data warehouse system where analytic queries are run.
 
-If there are reports running on OLTP production database, we usually have several indexes to ensure that the reports run efficiently. However, the more indexes we have in an OLTP system, the slower the DML operations happen. A simple update of a row has to drop and insert data to the corresponding indexes. Insert of a row into the table will also have to insert data into all the indexes of that table.
-
- Now with in-memory , these queries can run without the need of additional reporting indexes. The amount of CPU cycles needed to query the data for reporting is less. This helps to improve throughput of DML operations by elimination of indexes. At the same time reports run faster.
+If there are reports running on OLTP production database, we usually have several indexes to ensure that the reports run efficiently. However, these additional access structures cause performance overhead because you must create, manage, and tune them. For example, inserting a single row into a table requires an update to all indexes on this table, which increases response time.
+ Now with in-memory , these queries can run without the need of additional reporting indexes. The amount of CPU cycles needed to query the data for reporting is less. This helps to improve the overall throughput of DML operations by elimination of indexes. At the same time reports run faster.
 
 ### What happens to the Memory structure when we do DML operations on the underlying table ?
 the IM column store is always transactionally consistent with the data on disk. This is done through 2 background activities.
