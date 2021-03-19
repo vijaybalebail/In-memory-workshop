@@ -58,7 +58,12 @@ Once the load operation (direct path or non-direct path) has been committed, the
     ````
 4.	Check if the PART1 table got populated into the IM column store by querying V$IM_SEGMENTS. What do you observe?
     ````
-    SQL> <copy>SELECT * FROM V$IM_SEGMENTS WHERE SEGMENT_NAME = 'PART1'; </copy>
+    SQL> <copy>
+    COL SEGMENT_NAME FORMAT A20
+    SELECT SEGMENT_NAME, POPULATE_STATUS, BYTES, BYTES_NOT_POPULATED
+    FROM V$IM_SEGMENTS WHERE SEGMENT_NAME = 'PART1';
+     </copy>
+     
     no rows selected
     ````
 
