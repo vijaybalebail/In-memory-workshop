@@ -198,10 +198,10 @@ Once the load operation (direct path or non-direct path) has been committed, the
     ````
 
 16. As you observe from the above output, no new extents were added as only a few rows were loaded (1000 rows). The table hasn’t grown its on-disk footprint, and still has 17 extents, 244 DATABLOCKS and 244 BLOCKSINMEM.
-If the table would have grown its on-disk footprint, the rows in the new extents would not have been automatically populated into the column store, unless a non-default PRIOIRTY is specified or the table got accessed, or the procedure DBMS_INMEMORY.PROPULATE is used.
-If the new rows get added to existing extents/blocks, the new rows should be populated to the IM column store via the *Trickle Repopulate process*, even when a default PRIORITY is specified on the table.
+If the table would have grown its on-disk footprint, the rows in the new extents would not have been automatically populated into the column store, unless a non-default PRIOIRTY is specified or the table got accessed, or the procedure DBMS_INMEMORY.PROPULATE was used.
+If the new rows got added to existing extents/blocks, the new rows should be populated to the IM column store via the *Trickle Repopulate process*, even when a default PRIORITY is specified on the table.
 
-17.	Check the V$IM_SEGMENTS view and observe the value in BYTES_NOT_POPULATED column. Do you think a 0 in this column indicate that all the new rows have been added to the column store ?
+17.	Check the V$IM\_SEGMENTS view and observe the value in BYTES\_NOT\_POPULATED column. Do you think a 0 in this column indicate that all the new rows have been added to the column store ?
 
     ````
     <copy>
@@ -216,10 +216,10 @@ If the new rows get added to existing extents/blocks, the new rows should be pop
     PART1                COMPLETED        1998848                   0
 
     ````
-BYTES_NOT_POPULATED only indicates the bytes in the new extents that got added to the segment and have not been populated to the column store. If the new rows get inserted into the existing extents, BYTES_NOT_POPULATED will still be 0 and new rows may still be not populated. This how the V$IM_SEGMENTS view behaves currently.
-Next, check if the newly added rows got populated to the IM column store using V$IM_HEADER view. This view contains details about all IMCUs (incl. split IMCUs) for all segments that are loaded into the column store.
+BYTES\_NOT\_POPULATED only indicates the bytes in the new extents that got added to the segment and have not been populated to the column store. If the new rows get inserted into the existing extents, BYTES\_NOT\_POPULATED will still be 0 and new rows may still be not populated. This how the V$IM\_SEGMENTS view behaves currently.
+Next, check if the newly added rows got populated to the IM column store using V$IM\_HEADER view. This view contains details about all IMCUs (incl. split IMCUs) for all segments that are loaded into the column store.
 
-18. The number of rows contained within an IMCU can be observed in the v$im_header dynamic performance view. You may have to run the below query a few times in order to for TRICKLE_REPOPULATE to be set to 1.
+18. The number of rows contained within an IMCU can be observed in the v$im\_header dynamic performance view. You may have to run the below query a few times in order to for TRICKLE\_REPOPULATE to be set to 1.
 
     ````
     <copy>
