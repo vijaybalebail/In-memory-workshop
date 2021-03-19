@@ -532,7 +532,7 @@ SQL> <copy> show parameter INMEMORY_OPTIMIZED_ARITHMETIC
       SQL> alter system set INMEMORY_OPTIMIZED_ARITHMETIC=enable;
       System altered.
  ````
-25. Now reload Lineorder
+25. Now repopulate Lineorder table.
 ````
 <copy>
 alter table lineorder no inmemory;
@@ -579,7 +579,8 @@ AVG(LO_ORDTOTALPRICE)
 Elapsed: 00:00:00.12
 ````
 
-In our case the query timing reduced from 0.92 to 0.12 seconds. Although its 7 times faster(.92/.12 = 7), the dataset in this case is small and since data is already in memory, computation is fast to begin with. While for larger tables, the performance benefit is significant, the table will need to be loaded in COMPRESS QUERY LOW mode which will occupy more memory. So, this feature will need to have cost and benefit analysis done and it depends on how many queries you have aggregation and aggregation groupings.
+In our case the query timing reduced from 0.92 to 0.12 seconds. Although its 7 times faster(.92/.12 = 7), the dataset in this case is small and since data is already in memory, computation is fast to begin with. While for larger tables, the performance benefit is significant, the table will need to be loaded in *COMPRESS QUERY LOW* mode which will occupy more memory then COMPRESS QUERY HIGH.
+While InMemory Arithemtic is a good feature, since it can only run on "QUERY LOW" , it would take up much more memory. A cost/benefit analysis should be considered before enabling this feature. It depends on how many queries have aggregation/aggregation groupings and amount of memory in the system.
 
 
 
