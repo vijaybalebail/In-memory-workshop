@@ -6,22 +6,24 @@ In a OLTP production environment, it is common to expect the datbase to run 1000
 
 If there are reports running on OLTP production database, we usually have several indexes to ensure that the reports run efficiently. However, these additional access structures cause performance overhead because you must create, manage, and tune them. For example, inserting a single row into a table requires an update to all indexes on this table, which increases response time.
  Now with in-memory , these queries can run without the need of additional reporting indexes. The amount of CPU cycles needed to query the data for reporting is less. This helps to improve the overall throughput of DML operations by elimination of indexes. At the same time reports run faster.
+ ![](../images/lessIndexs.png)
 
-### What happens to the Memory structure when we do DML operations on the underlying table ?
-the IM column store is always transactionally consistent with the data on disk. This is done through 2 background activities.
+
+### <B> So how is In-Memory synchronized when we do DML operations on the underlying tables ? </B>
+The IM column store is always transactionally consistent with the data on disk. This is done through 2 background activities.
 
  - <b>Repopulation of the IM Column Store :</b> The automatic refresh of columnar data after significant modifications is called repopulation. When DML occurs for objects in the IM column store, the database repopulates them automatically.
  Automatic repopulation takes the following forms:
-  - threshold-based repopulation : This form depends on the percentage of stale entries in the transaction journal for an IMCU.
+      - Threshold-based repopulation : This form depends on the percentage of stale entries in the transaction journal for an IMCU.
 
-  - trickle repopulation : This form supplements threshold-based repopulation by periodically refreshing columnar data even when the staleness threshold has not been reached.
+      - Trickle repopulation : This form supplements threshold-based repopulation by periodically refreshing columnar data even when the staleness threshold has not been reached.
 
  During automatic repopulation, traditional access mechanisms are available. Data is always accessible from the buffer cache or disk. Additionally, the IM column store is always transactionally consistent with the data on disk. No matter where the query accesses the data, the database always returns consistent results.
 
 
- - <b>Row Modifications and the Transaction Journal :</b> An In-Memory Compression Unit (IMCU) is a read-only structure that does not modify data in place when DML occurs on an internal table. The Snapshot Metadata Unit (SMU) associated with each IMCU tracks row modifications in a transaction journal. If a query accesses the data, and discovers modified rows, then it can obtain the corresponding rowids from the transaction journal, and then retrieve the modified rows from the buffer cache. As the number of modifications increase, so do the size of SMUs, and the amount of data that must be fetched from the transaction journal or database buffer cache. To avoid degrading query performance through journal access, background processes repopulate modified objects.
+ - <b>Row Modifications and the Transaction Journal :</b> An In-Memory Compression Unit (IMCU) is a read-only structure that does not modify data in place when DML occurs on an under underlying table. The Snapshot Metadata Unit (SMU) associated with each IMCU tracks row modifications in a transaction journal. If a query accesses the data, and discovers modified rows, then it can obtain the corresponding rowids from the transaction journal, and then retrieve the modified rows from the buffer cache. As the number of modifications increase, so do the size of SMUs, and the amount of data that must be fetched from the transaction journal or database buffer cache. To avoid degrading query performance through journal access, background processes repopulate modified objects.
 
- ![](../images/lessIndexs.png)
+
 
 Watch a preview video of querying the In-Memory Column Store
 
@@ -34,7 +36,7 @@ We will test how the Oracle Database In-Memory is the only in-memory column stor
 
 ## Step 1: BULK LOADS and In-Memory tables.
 Bulk data loads occur most commonly in Data Warehouse environments and are typically use direct path load. A direct path load parses the input data, converts the data for each input field to its corresponding Oracle data type, and then builds a column array structure for the data. These column array structures are used to format Oracle data blocks and build index keys. The newly formatted database blocks are then written directly to the database, bypassing the standard SQL processing engine and the database buffer cache.
-Once the load operation (direct path or non-direct path) has been committed, the IM column store is instantly aware it does not have all of the data populated for the object. The size of the missing data will be visible in the BYTES_NOT_POPULATED column of V$IM_SEGMENTS. If the object has a PRIORITY specified on it then the newly added data will be automatically populated into the IM column store. Otherwise the next time the object is queried, the background worker processes will be triggered to begin populating the missing data, assuming there is free space in the IM column store.
+Once the load operation (direct path or non-direct path) has been committed, the IM column store is instantly aware it does not have all of the data populated for the object. The size of the missing data will be visible in the BYTES\_NOT\_POPULATED column of V$IM_SEGMENTS. If the object has a PRIORITY specified on it then the newly added data will be automatically populated into the IM column store. Otherwise the next time the object is queried, the background worker processes will be triggered to begin populating the missing data, assuming there is free space in the IM column store.
 
 
 1.	Using SQL*Plus, connect as LABUSER.
