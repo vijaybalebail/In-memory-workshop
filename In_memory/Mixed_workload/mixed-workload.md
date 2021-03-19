@@ -63,7 +63,7 @@ Once the load operation (direct path or non-direct path) has been committed, the
     SELECT SEGMENT_NAME, POPULATE_STATUS, BYTES, BYTES_NOT_POPULATED
     FROM V$IM_SEGMENTS WHERE SEGMENT_NAME = 'PART1';
      </copy>
-     
+
     no rows selected
     ````
 
@@ -146,7 +146,7 @@ Once the load operation (direct path or non-direct path) has been committed, the
     PART1          1310720         17        256        244         244    2097152
     ````
 
-	From the above output, observe that PART1 so far has 17 extents, 256 allocated on-disk blocks (BLOCKS) and 244 used blocks (DATABLOCKS), All rows in 244 blocks on disk is loaded to the IM column store (BLOCKSINMEM).
+	From the above output, observe that PART1 so far has 17 extents, 256 allocated on-disk blocks (BLOCKS) and 244 used blocks (DATABLOCKS), All rows in 244 blocks on disk are loaded into the IM column store (BLOCKSINMEM).
 
   Note: If the table does not have PRIORITY ENABLED and you execute another Bulk Load, then those segments will be populated either during the next query or when you execute DBMS_INMEMORY.POPULATE (Step 10 ).
 
