@@ -221,16 +221,16 @@ Next, check if the newly added rows got populated to the IM column store using V
 
 18. The number of rows contained within an IMCU can be observed in the v$im\_header dynamic performance view. You may have to run the below query a few times in order to for TRICKLE\_REPOPULATE to be set to 1.
 
-    ````
-    <copy>
-    COL OBJECT_NAME FORMAT A11
-    SELECT b.OBJECT_NAME, a.PREPOPULATED, a.REPOPULATED, a.TRICKLE_REPOPULATED, a.NUM_DISK_EXTENTS, a.NUM_BLOCKS, a.NUM_ROWS, a.NUM_COLS FROM V$IM_HEADER a, DBA_OBJECTS b WHERE a.OBJD = b.DATA_OBJECT_ID  AND b.OBJECT_NAME =  'PART1';
-    </copy>
-
-    OBJECT_NAM PREPOPULATED REPOPULATED TRICKLE_REPOPULATED NUM_DISK_EXTENTS NUM_BLOCKS   NUM_ROWS   NUM_COLS
-    ---------- ------------ ----------- ------------------- ---------------- ---------- ---------- ----------
-    PART1                 0           1                   1               17        244      11000          9
+````
+<copy>
+COL OBJECT_NAME FORMAT A11
+SELECT b.OBJECT_NAME, a.PREPOPULATED, a.REPOPULATED, a.TRICKLE_REPOPULATED, a.NUM_DISK_EXTENTS, a.NUM_BLOCKS, a.NUM_ROWS, a.NUM_COLS FROM V$IM_HEADER a, DBA_OBJECTS b WHERE a.OBJD = b.DATA_OBJECT_ID  AND b.OBJECT_NAME =  'PART1';
 </copy>
+
+OBJECT_NAM PREPOPULATED REPOPULATED TRICKLE_REPOPULATED NUM_DISK_EXTENTS NUM_BLOCKS   NUM_ROWS NUM_COLS
+---------- ------------ ----------- ------------------- ---------------- ---------- ---------- -------
+PART1                 0           1                   1               17        244      11000        9
+
 ````
 
 
@@ -244,7 +244,8 @@ Below are the observations from the above output:
 Note : When inserting data through direct path load, the data is inserted into newer extents. This data will be populated automatically if table PRIORITY is set. If no PRIORITY is set, Loading is triggered when the table is queried by a SQL statement or when we use DBMS_INMEMORY.POPULATE( Step 10 )
 
 19. Run the following query to view Population status and the number of IMCUs of all the In-Memory tables.
-    ````
+
+````
     <copy>
     SELECT a.OBJECT_NAME, b.INMEMORY_PRIORITY, b.POPULATE_STATUS, COUNT(1) IMCUs, SUM(num_rows),
     TO_CHAR(c.CREATETIME, 'MM/DD/YYYY HH24:MI:SS.FF2') START_POP, TO_CHAR(MAX(d.TIMESTAMP),'MM/DD/YYYY HH24:MI:SS.FF2') FINISH_POP FROM DBA_OBJECTS a, V$IM_SEGMENTS b,
@@ -256,19 +257,22 @@ Note : When inserting data through direct path load, the data is inserted into n
     AND c.DATAOBJ = d.OBJD
     GROUP BY a.OBJECT_NAME, b.INMEMORY_PRIORITY, b.POPULATE_STATUS, c.CREATETIME ORDER BY FINISH_POP;
     </copy>
-    ````
+````
+
+  In this section, we discussed how data is transparently loaded into In-Memory. Next we will discuss the impact of DML on In-Memory queries.
 
 ## Step 3: In-Memory workload Query Performance.
 
-  In the previous section, we disused how In-Memory transparently loads data into In-Memory pool. In-memory operations are mainly CPU and memory bond and have little Query Performance impact due to DML/ Bulk-Loads on the underlying table.
-  To demonstrate this, Run the following script.
-  The script will run 3 queries
-  - Base RUN  : run queries without any load.
-  - Batch RUN : run queries while, loading 10000 rows to Lineorder.
-  - DML RUN   : run queries while inserting 500 rows to lineorder and commiting after each row.
-  - ALL       : run queries while, batch and DML operating are happening.
+  In mixed workload environments, DML I/O operations have little impact on In-Memory queries as In-Memory operations are mainly CPU and memory bound.
+  To demonstrate this we will run the following 4 scenarios:
 
-  19. create the  procedure as SSB that will query the SQLS.
+      - Base RUN  : run queries without any load.
+      - Batch RUN : run queries while, loading 10000 rows to Lineorder.
+      - DML RUN   : run queries while inserting 500 rows to lineorder and commiting after each row.
+      - ALL       : run queries while, batch and DML operating are happening.
+
+
+20. Setup: Run the following DDL to create the the procedure that will run 3 queries in a loop.
 
   ````
   <copy>
@@ -293,15 +297,22 @@ lo_custkey1     lineorder.lo_custkey%type;
 lo_revenue1     lineorder.lo_revenue%type;
 begin
 
+/* Q1 : Simple query with 3 filter conditions */
 v_stmt_str1 := 'select lo_orderkey, lo_custkey, lo_revenue from LINEORDER where lo_custkey = 5641 and lo_shipmode = ''XXX AIR'' and lo_orderpriority = ''5-LOW''';
+
+/* Q2 : Ad-Hoc query with join on time dimension and 3 filter conditions*/
 v_stmt_str2 := ' SELECT SUM(lo_extendedprice * lo_discount) revenue FROM   lineorder l,
    date_dim d
    WHERE  l.lo_orderdate = d.d_datekey
    AND    l.lo_discount BETWEEN 2 AND 3
    AND    l.lo_quantity < 24
    AND    d.d_date=''December 24, 1996''';
+
+/* Q3 : CPU intensive query with full table arithmetic summation*/   
  v_stmt_str3 :=   'SELECT max(lo_ordtotalprice) most_expensive_order,
 sum(lo_quantity) total_items FROM lineorder';
+
+/* run all 3 queries run_count (400) times. */
  for i in 1..run_count loop
   open c1 for v_stmt_str1 ;
   t1 := dbms_utility.get_time;
@@ -312,18 +323,22 @@ sum(lo_quantity) total_items FROM lineorder';
   END LOOP;
   close c1;
   t2 :=  dbms_utility.get_time;
+
+  /* insert timing into run_time table */
   insert into run_time (run_type ,Qx ,qrun_time) values (run_type,'Q1',(t2-t1)/100);
 
    open c1 for v_stmt_str2 ;
     FETCH c1 INTO lo_orderkey1;
    close c1;
     t3 :=  dbms_utility.get_time;
+    /* insert timing into run_time table */
      insert into run_time (run_type ,Qx ,qrun_time) values (run_type,'Q2',(t3-t2)/100);
 
    open c1 for v_stmt_str3 ;
     FETCH c1 INTO lo_orderkey1, lo_revenue1;
    close c1;
     t4 :=  dbms_utility.get_time;  
+    /* insert timing into run_time table */
      insert into run_time (run_type ,Qx ,qrun_time) values (run_type,'Q3',(t4-t3)/100);
 
    commit;  
@@ -333,20 +348,13 @@ end;
 /
 </copy>
 ````
-20. Now run the PLSQL to run the Query  in the background while running BATCH, DML or both.
+21. Now run the test BASE, BATCH, DML and ALL while queries run in the background..
 
 ````
 <copy>
 DECLARE
-  PROCEDURE wait_macro as
-  cnt1 number:=1;
-  BEGIN
-    while cnt1 >= 1 loop
-     dbms_lock.sleep (5);
-     SELECT count(1) into cnt1 FROM dba_scheduler_running_jobs srj
-     WHERE srj.job_name like 'QRUN%';
-   end loop;
-  end;
+
+  /*Run the queries as a background job */
   PROCEDURE BACKGROUND_QUERY ( job_name in varchar2) AS
   BEGIN
   Begin
@@ -362,17 +370,32 @@ DECLARE
    );
   commit;
   END;
-BEGIN
-  execute immediate 'truncate table run_time ';
 
+  /* procedure to wait until job is finished before calling the next job */
+  PROCEDURE wait_macro as
+  cnt1 number:=1;
+  BEGIN
+    while cnt1 >= 1 loop
+     dbms_lock.sleep (5);
+     SELECT count(1) into cnt1 FROM dba_scheduler_running_jobs srj
+     WHERE srj.job_name like 'QRUN%';
+   end loop;
+  end;
+
+BEGIN
+   execute immediate 'truncate table run_time ';
+
+   /* Base RUN  : run queries without any load. */
    BACKGROUND_QUERY('QRUN_BASE');
    WAIT_MACRO();
 
+   /* Batch RUN : run queries while, loading 10000 rows to Lineorder. */
    BACKGROUND_QUERY('QRUN_BATCH');
    EXECUTE IMMEDIATE 'insert /*+ append */ into lineorder select * from lineorder2 where rownum <=10000';
    commit;   
    WAIT_MACRO();
 
+   /* DML RUN   : run queries while inserting 500 rows to lineorder and commiting after each row.*/
    BACKGROUND_QUERY('QRUN_DML');
    for c1 in ( select * from lineorder2 where rownum < 100 ) Loop
       insert into lineorder values (c1."LO_ORDERKEY",c1.LO_LINENUMBER,c1.LO_CUSTKEY,c1.LO_PARTKEY,c1.LO_SUPPKEY,c1.LO_ORDERDATE,c1.LO_ORDERPRIORITY,c1.LO_SHIPPRIORITY,c1.LO_QUANTITY, c1.LO_EXTENDEDPRICE,c1.LO_ORDTOTALPRICE,c1.LO_DISCOUNT, c1.LO_REVENUE,c1.LO_SUPPLYCOST,c1.LO_TAX,c1.LO_COMMITDATE,c1.LO_SHIPMODE ) ;
@@ -380,6 +403,8 @@ BEGIN
    commit;
    WAIT_MACRO();
 
+
+   /* ALL       : run queries while, batch and DML operating are happening.*/
    BACKGROUND_QUERY('QRUN_ALL');
    for c1 in ( select * from lineorder2 where rownum < 100 ) Loop
       insert into lineorder values (c1."LO_ORDERKEY",c1.LO_LINENUMBER,c1.LO_CUSTKEY,c1.LO_PARTKEY,c1.LO_SUPPKEY,c1.LO_ORDERDATE,c1.LO_ORDERPRIORITY,c1.LO_SHIPPRIORITY,c1.LO_QUANTITY, c1.LO_EXTENDEDPRICE,c1.LO_ORDTOTALPRICE,c1.LO_DISCOUNT, c1.LO_REVENUE,c1.LO_SUPPLYCOST,c1.LO_TAX,c1.LO_COMMITDATE,c1.LO_SHIPMODE ) ;
@@ -393,7 +418,7 @@ END;
 </copy>
 ````
 This job will run for about 5 minutes. You can run the following query to see the average time each query took under different load conditions.
-What you will observe is that the query performance does not alter much running by itself (BASE_RUN), or when there is bulk loading(QRUN_BATCH) or DML (QRUN_DML) operations on the table being queried. when all (QRUN_ALL) of the activities are performed on the table the performance is still consisteant. This indicates that CPU utilizations for running the queries is consistent.
+What you will observe is that the *query performance is consistent* when running (BASE_RUN), or when there is bulk loading (QRUN_BATCH) or DML(QRUN_DML), and all (QRUN_ALL) operations are performed on the table being queried. This indicates that  *In-Memory queries are not affected by DML operations*.
 ````
 <copy>
 select run_type,qx, count(1) runs, round(avg(qrun_time),3)
