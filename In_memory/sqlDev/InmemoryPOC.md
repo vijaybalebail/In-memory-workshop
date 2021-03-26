@@ -35,7 +35,7 @@ The SQL In-Memory POC tool is loaded as a User defined report in Sql\*Developer.
 2. Open Sql*Developer Click on Views--> reports
 ![](images/viewReports.png)
 
-3. In the reports window, Right click and select "Open Report". Open the xml file saved in step 1.
+3. Under "User Defined Reports", Right click and select "Open Report". Open the xml file saved in step 1.
 ![](images/openReport.png)
 
 That is it. You have installed the In-Memory POC tool. Next, we we need to connect to the test environment.
