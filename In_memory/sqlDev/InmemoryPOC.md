@@ -2,7 +2,7 @@
 
 ## Introduction
 
-Oracle In-Memory is relatively new. There are many expert and novice DBAs who would might LIKE to compare their application SQL statements In-Memory and in buffer to understand the inner workings.
+Oracle In-Memory is relatively new. There are many expert and novice DBAs who would might like to compare their application SQL statements In-Memory and in buffer to understand the inner workings.
 
 When doing a benchmark of Database In-Memory enabled and disabled, it is not always obvious how individual query performance gains have contributed to the overall performance. In this Lab, we will examine how to compare query performance with and without Database In-Memory.
 
