@@ -2,11 +2,11 @@
 
 ## Introduction
 
-Oracle In-Memory is relatively new. There are many expert and novice DBAs alike who would like to test their application SQL statements In-Memory and in buffer and understand the inner workings.
+Oracle In-Memory is relatively new. There are many expert and novice DBAs who would might LIKE to compare their application SQL statements In-Memory and in buffer to understand the inner workings.
 
-If we are doing a benchmark of Database with In-Memory enabled and disabled, it is not quiet obvious how Individual performance gains have contributed to the overall performance, In this Lab, we will look at a tool to run individual queries and see how it behaves with In-Memory and without it.
+When doing a benchmark of Database In-Memory enabled and disabled, it is not always obvious how individual query performance gains have contributed to the overall performance. In this Lab, we will examine how to compare query performance with and without Database In-Memory.
 
-The tool has been developed using Sql\*Developer "User defined reports". The scripts can be plugged-in to any Sql\*Developer and the user can quickly connect to the schema and run the monitoring and diagnostic reports.  
+Sql\*Developer "User defined reports" provides a method us plug-in any query scripts "The tool has been developed using Sql\*Developer "User defined reports". The scripts can be plugged-in to any Sql\*Developer and the user can quickly connect to the schema and run the monitoring and diagnostic reports.  
 
 The major capability of the tool is
 
@@ -369,7 +369,7 @@ For the same query we ran earlier, we can create a MV and see the performance di
 DROP Materialized view MV_median ;
 CREATE MATERIALIZED VIEW MV_median INMEMORY PRIORITY HIGH
 BUILD IMMEDIATE
-REFRESH FORCE ON COMMIT
+--REFRESH FORCE ON COMMIT
 ENABLE QUERY REWRITE
 AS
 select lo_custkey, median(lo_ordtotalprice) from lineorder
@@ -417,7 +417,11 @@ Plan hash value: 835373166
 Run #  01 ran in 0  seconds
 Run #  02 ran in .02  seconds
 ````
-The query that had taken 28 seconds earlier in memory takes less than 1 millisecond InMemory and 20 millisecond from buffer.
-This feature is powerful and should be make use of where possible.
+The query that had taken 28 seconds earlier when doing direct path load query. InMemory takes about 20 millisecond to get data from Buffer compared to less than a millisecond for InMemory Materilized view.
+MVs with query rewrite is powerful as a feature. But when these MVs are inmemory the performance is much more.
 
 For more information about this, check out Oracle **[documentation.](https://docs.oracle.com/en/database/oracle/oracle-database/19/dwhsg/basic-query-rewrite-materialized-views.html#GUID-DB76286B-8557-446B-A6CC-BC987C378076)**
+
+## Result Caching and InMemory
+
+We saw that materialized views can rewrite any SQL queries that use the underlying join condition or aggregation, Result Caching is a layer above this. This can save the result at a SQL statement level and for each bind value.  This can run over MATERIALIZED views or just over Tables.
