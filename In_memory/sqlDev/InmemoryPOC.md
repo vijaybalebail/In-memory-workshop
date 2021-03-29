@@ -6,13 +6,14 @@ Oracle In-Memory is relatively new. There are many expert and novice DBAs who wo
 
 When doing a benchmark of Database In-Memory enabled and disabled, it is not always obvious how individual query performance gains have contributed to the overall performance. In this Lab, we will examine how to compare query performance with and without Database In-Memory.
 
-Sql\*Developer "User defined reports" provides a method us plug-in any query scripts "The tool has been developed using Sql\*Developer "User defined reports". The scripts can be plugged-in to any Sql\*Developer and the user can quickly connect to the schema and run the monitoring and diagnostic reports.  
+Sql\*Developer "User defined reports" provides a method to plug-in any query scripts.
+In this lab, we provide a Sql Developer report that compares the performance of any sql Query running with and without In-Memory.
 
 The major capability of the tool is
 
-1)  to run any give sql statement with in-memory ENABLED and  DISABLED and display the 2 different sql plans and stats. All the statistics that changed during the execution of the sql statement are displayed side-by-side. The unique features is that it can keep the same sql_id for the sql statment as the tool will not alter the statement in any way. (like adding a HINT or count in front of the sql).  Also, it only fetches the first 10 rows and stops. This will ensure you are only counting the DB time and not network time to move large amount of data.
+1)  to run any given sql statement with in-memory ENABLED and  DISABLED and display the 2 different sql plans and stats. All the statistics that changed during the execution of the sql statement are displayed side-by-side for the same sql_id.  Also, the report only fetches the first 10 rows and stops. This will ensure you are only counting the DB time and not network time to move large amount of data.
 
-2) It also has  provision to add multiple alter session statements seperated by '';'' like "alter session set nls\_date\_format ...;alter session....; " This will help if the sql queries expect date to be of a certain format so that you need not add to_date syntax. Also, you can add other tunable parameters like parallel degrees,APPROX\_FOR\_AGGREGATION,etc.
+2) It also has  an option to add multiple provision to add multiple alter session statements seperated by '';'' like "alter session set nls\_date\_format ...;alter session....; " This will help if the sql queries expect date to be of a certain format so that you need not add to_date syntax. Also, you can add other tunable parameters like parallel degrees,APPROX\_FOR\_AGGREGATION,etc.
 
 3) Show barchart of execution times when run in Buffer and In-Memory.
 
