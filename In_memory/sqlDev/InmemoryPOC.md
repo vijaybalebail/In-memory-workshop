@@ -271,9 +271,32 @@ and lo_orderpriority = '5-LOW'; </copy>
  Note that the first time you run of the query, it might appear slower as the runstat package may not be in the shared pool.
 Rerun the report again and compare.
 
-Some sql queries will need to set session parameters like Parallel Degree, Hint and invisible indexes, optimizer tuning *parameters and NLS date formats. We already tested one query by enabling invisible index in our test. We can now run it in this tool.*
+Some sql queries will need to set session parameters like Parallel Degree, Hint and invisible indexes, optimizer tuning parameters and NLS date formats. We already tested one query by enabling invisible index in our test. We can now run it again in Sql Developer.
 
-Open
+Click and open "InMemory vs Buffer with Session Parameter" enter the query_string ..
+````
+<copy>
+Select  /* Demo  */ lo_orderkey, lo_custkey, lo_revenue
+From    LINEORDER Where   lo_orderkey = 5000000;
+</copy>
+````
+![](images/query_string.jpg)
+
+
+Next click in the "alter_session_stmt" and enter the session information.
+
+````
+<copy>
+ alter session set optimizer_use_invisible_indexes=true;
+</copy>
+````
+
+![](images/Altersession.png)
+
+From the report, we observed that, when we have a favorable index, the optimizer choose "index Range Scan" over full tablespace even when In-Memory is enabled. This is the same result we observed in Lab 03. Step 4-5.
+
+Next we can see other useful reports which could help during a POC.
+
 
 ## Top InmemorySQL report
 
