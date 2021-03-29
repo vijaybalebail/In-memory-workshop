@@ -44,7 +44,7 @@ That is it. You have installed the In-Memory POC tool. Next, we we need to conne
    To add a New Connection, you can click on the "+" icon on the upper left corner under connections window frame.
     ![](images/newConnection.png)
 
-    You can add the connection information to connect. In our case, we will run Queries as SSB user for PDB orclpdb.
+    You can add the connection information to connect. In our case, we will run Queries as SSB/Ora_DB4U user for service orclpdb.
     ![](images/SSBconnection.png)
     "Test" your connection and Click Save to save the connection alias.
 
@@ -53,8 +53,8 @@ That is it. You have installed the In-Memory POC tool. Next, we we need to conne
 	*   view called stats
 	*   Plsql package called runstats_pkg
 
- Expand the "User Defined report" --> "InMemory POC tool" --> "Load Runstats".
- When you run in for the first time, you will get the following message displayed.
+ Expand the "User Defined report" --> "InMemory POC tool" and click "Load Runstats" and choose the connect you just created.
+ When you run it for the first time, you will get the following message displayed.
 
  ````
   As a sys user please grant access to following tables and run again
