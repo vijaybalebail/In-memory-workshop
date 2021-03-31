@@ -283,7 +283,7 @@ From    LINEORDER Where   lo_orderkey = 5000000;
 ![](images/query_string.jpg)
 
 
-Next click in the "alter_session_stmt" and enter the session information.
+Next click in the "alter\_session\_stmt" and enter the session information.
 
 ````
 <copy>
@@ -306,8 +306,10 @@ Next we can see other useful reports which could help during a POC.
 You can click on TopSqLInMemory report. The report show top few sql queries which ran InMemory atleast once. Since the tool runs the SQL once InMemory and once without it, you will find average execution time for all plans and execution times.
 
 ## Approximate Query Processing and InMemory.
+
 While InMemory is highly efficient in query filtering, min-max pruning and InMemory indexing, the query can further improve performance using "Approximate Query Processing" as a complimentry feature. They are features to improve performance of sort operations like DISTINCT, RANP, PERCENTILE, MEDIAN . These operations happen in the Process Global Area (PGA) of a user sessions. Since 12c, oracle has "approximate query processing" features that can make sorting operations faster but can be 95% or more accurate. For more information about this feature check out the  **[documentation.](https://docs.oracle.com/en/database/oracle/oracle-database/19/tgsql/query-optimizer-concepts.html#GUID-6273DFAC-7C4D-4540-AE11-B6973F237323)**
 This type of approximation is useful in certain Dashboards, BI applications where data needs to be real time, but small variance in dataset does not distort the visualizations of data.
+
 In 12.2 there are several APPROX functions introduced:
 - APPROX_COUNT_DISTINCT_DETAIL
 - APPROX_COUNT_DISTINCT_AGG
@@ -448,4 +450,4 @@ For more information about this, check out Oracle **[documentation.](https://doc
 
 ## Result Caching and InMemory
 
-We saw that materialized views can rewrite any SQL queries that use the underlying join condition or aggregation, Result Caching is a layer above this. This can save the result at a SQL statement level and for each bind value.  This can run over MATERIALIZED views or just over Tables.
+We saw that materialized views can rewrite any SQL queries that use the underlying join condition or aggregation, Result Caching is a layer above this. This can save the result at a SQL statement level and for each bind value.  This can run over MATERIALIZED views or just over Tables. While it is not part of InMemory workshop, it is none the less one of the features that can improve performance of BI reports and dashboards type of applications.
