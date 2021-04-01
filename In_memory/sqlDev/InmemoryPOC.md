@@ -2,30 +2,16 @@
 
 ## Introduction
 
-Oracle In-Memory is relatively new. There are many expert and novice DBAs who would might like to compare their application SQL statements In-Memory and in buffer to understand the inner workings.
+ In this Lab, we will compare the performance of sql queries running with and without Database In-Memory. To automate this comparison we are providing Sql Developer "User Defined Reports".
 
-When doing a benchmark of Database In-Memory enabled and disabled, it is not always obvious how individual query performance gains have contributed to the overall performance. In this Lab, we will examine how to compare query performance with and without Database In-Memory.
+ These reports are also available on  [github](https://raw.githubusercontent.com/vijaybalebail/In-memory-workshop/master/In_memory/sqlDev/InMemoryPOC.xml) for you to use in your own test environments.
 
-Sql\*Developer "User defined reports" provides a method to plug-in any query scripts.
-In this lab, we provide a Sql Developer report that compares the performance of any sql Query running with and without In-Memory.
-
-The major capability of the tool is
-
-1)  to run any given sql statement with in-memory ENABLED and  DISABLED and display the 2 different sql plans and stats. All the statistics that changed during the execution of the sql statement are displayed side-by-side for the same sql_id.  Also, the report only fetches the first 10 rows and stops. This will ensure you are only counting the DB time and not network time to move large amount of data.
-
-2) It also has  an option to add multiple provision to add multiple alter session statements seperated by '';'' like "alter session set nls\_date\_format ...;alter session....; " This will help if the sql queries expect date to be of a certain format so that you need not add to_date syntax. Also, you can add other tunable parameters like parallel degrees,APPROX\_FOR\_AGGREGATION,etc.
-
-3) Show barchart of execution times when run in Buffer and In-Memory.
-
-4) Show barchart of space it would occupy in buffer compared to In-Memory.
-
-5) Show Barchart of different memory pools in SGA and PieChart of memory used by In-Memory tables.
 
 ## Install
 
-The SQL In-Memory POC tool is loaded as a User defined report in Sql\*Developer. You can download Sql\*Developer in the test environment.
+The SQL In-Memory POC tool is loaded into Sql\*Developer as a "User Defined Reports".
 
-1. Download the XML file from [your Browser](https://raw.githubusercontent.com/vijaybalebail/In-memory-workshop/master/In_memory/sqlDev/InMemoryPOC.xml). Then right click and choose "save as"  to save the XML file.
+1. Download the Report script from [your Browser](https://raw.githubusercontent.com/vijaybalebail/In-memory-workshop/master/In_memory/sqlDev/InMemoryPOC.xml). Then right click and choose "save as"  to save the XML file.
 
 
 
@@ -33,29 +19,22 @@ The SQL In-Memory POC tool is loaded as a User defined report in Sql\*Developer.
 
 
 
-2. Open Sql*Developer Click on Views--> reports
+2. Open Sql*Developer and click on Views--> Reports
 ![](images/viewReports.png)
 
 3. Under "User Defined Reports", Right click and select "Open Report". Open the xml file saved in step 1.
 ![](images/openReport.png)
 
-That is it. You have installed the In-Memory POC tool. Next, we we need to connect to the test environment.
+That is it. You have installed the In-Memory POC tool. Next, we need to connect to the test environment.
 
-4. Ensure have a connection in Sql\*Developer as the user which is running the query.
-   To add a New Connection, you can click on the "+" icon on the upper left corner under connections window frame.
+4. Add a New Connection. Click on the "+" icon in the upper left corner under connections window frame.
     ![](images/newConnection.png)
 
-    You can add the connection information to connect. In our case, we will run Queries as SSB/Ora_DB4U user for service orclpdb.
+     We will run Queries as SSB/Ora_DB4U user for service orclpdb.
     ![](images/SSBconnection.png)
-    "Test" your connection and Click Save to save the connection alias.
+    Click the "Test" button and if successful click "Save" to save the connection alias.
 
-5. Next. We need to install some DB objects for the tool to work, we need to install the following objects.
-	*   global temporary table called run_stats
-	*   view called stats
-	*   Plsql package called runstats_pkg
-
- Expand the "User Defined report" --> "InMemory POC tool" and click "Load Runstats" and choose the connect you just created.
- When you run it for the first time, you will get the following message displayed.
+5. Expand the "User Defined report" --> "InMemory POC tool" and click "Load Runstats" and choose the connection you just created. When you run it for the first time, you will get the following message displayed.
 
  ````
   As a sys user please grant access to following tables and run again
@@ -70,7 +49,7 @@ That is it. You have installed the In-Memory POC tool. Next, we we need to conne
   ORA-24344: success with compilation error
  ````
 
-To add privileges, connect to sql\*plus session as sys user of ORCLPDB and grant the privileges.
+To add privileges, open a terminal window and start  sql\*plus.
 ````
   <copy>
   connect / as sysdba
@@ -266,7 +245,7 @@ and lo_orderpriority = '5-LOW'; </copy>
  ````
  From the generated report, observe the SQL PLAN operation "*TABLE ACCESS INMEMORY FULL*" when INMEMORY is enabled and "*TABLE ACCESS FULL*" when disabled.
 
- Now look at the relevant DB stats  see the In-Memory optimizations.
+ Now look at the relevant DB stats to see the In-Memory optimizations.
 
 
 Some sql queries will need to set session parameters like Parallel Degree, Hint like invisible indexes, optimizer tuning parameters and NLS date formats. We already tested one query by enabling invisible index in our test. We can now run it again in Sql Developer.
