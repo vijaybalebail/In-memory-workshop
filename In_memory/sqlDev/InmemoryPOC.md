@@ -269,7 +269,7 @@ and lo_orderpriority = '5-LOW'; </copy>
  Now look at the relevant DB stats  see the In-Memory optimizations.
 
 
-Some sql queries will need to set session parameters like Parallel Degree, Hint and invisible indexes, optimizer tuning parameters and NLS date formats. We already tested one query by enabling invisible index in our test. We can now run it again in Sql Developer.
+Some sql queries will need to set session parameters like Parallel Degree, Hint like invisible indexes, optimizer tuning parameters and NLS date formats. We already tested one query by enabling invisible index in our test. We can now run it again in Sql Developer.
 
 Click and open "InMemory vs Buffer with Session Parameter" enter the query_string ..
 ````
