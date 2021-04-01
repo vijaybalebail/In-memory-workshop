@@ -268,8 +268,6 @@ and lo_orderpriority = '5-LOW'; </copy>
 
  Now look at the relevant DB stats  see the In-Memory optimizations.
 
- Note that the first time you run of the query, it might appear slower as the runstat package may not be in the shared pool.
-Rerun the report again and compare.
 
 Some sql queries will need to set session parameters like Parallel Degree, Hint and invisible indexes, optimizer tuning parameters and NLS date formats. We already tested one query by enabling invisible index in our test. We can now run it again in Sql Developer.
 
