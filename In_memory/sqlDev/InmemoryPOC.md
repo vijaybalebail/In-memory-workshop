@@ -264,9 +264,9 @@ and lo_orderpriority = '5-LOW'; </copy>
     workarea memory allocated............... |             11 |            -13
     ###########################################################################
  ````
- From the report generated, observe the SQL PLAN operation "*TABLE ACCESS INMEMORY FULL*" for INMEMORY plan and "*TABLE ACCESS FULL*" For table scan operation.
+ From the generated report, observe the SQL PLAN operation "*TABLE ACCESS INMEMORY FULL*" when INMEMORY is enabled and "*TABLE ACCESS FULL*" when disabled.
 
- Next, You can look at the relevant DB stats to see the optimizations.
+ Now look at the relevant DB stats  see the In-Memory optimizations.
 
  Note that the first time you run of the query, it might appear slower as the runstat package may not be in the shared pool.
 Rerun the report again and compare.
