@@ -49,7 +49,7 @@ That is it. You have installed the In-Memory POC tool. Next, we need to connect 
   ORA-24344: success with compilation error
  ````
 
-To add privileges, open a terminal window and start  sql\*plus.
+To add privileges, open a terminal window and start  sql\*plus. Copy and run the following.
 ````
   <copy>
   connect / as sysdba
