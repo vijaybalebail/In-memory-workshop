@@ -253,9 +253,9 @@ and lo_orderpriority = '5-LOW'; </copy>
 
 ## Report 3 : Run In-Memory Query vs  Buffer Cache with custom session parameters.
 
-Some sql queries might need to mofify session parameters like Parallel Degree, NLS date formats, HINTS, tuning parameters, etc.  In Lab 2, we modified the session parameter invisible index. We can now run this scenario again in Sql Developer.
+Some sql queries might need to modify session parameters like Parallel Degree, NLS date formats, HINTS, tuning parameters, etc.
 
-Click and open "InMemory vs Buffer with Session Parameter" enter the query_string.
+Click and open "InMemory vs Buffer with Session Parameter" and select "query_string".
 
 ````
 <copy>
@@ -264,9 +264,9 @@ Click and open "InMemory vs Buffer with Session Parameter" enter the query_strin
 ````
 ![](images/query_string.jpg)
 
-Now we run this sql report without any session information, it will error out. To prevent this, you will either alter the sql and have to_date syntax or change the NLS_DATE_FORMAT. changing the session parameter is better as it would not change the SQL_ID of the query you are running.
+Now run the sql report without any session information, it will error out. To prevent this, you can either alter the sql include TO_DATE() syntax or change the NLS_DATE_FORMAT session parameter. Changing the session parameter is a better option as it would not change the SQL_ID of the query you are running.
 
-Next click in the "alter\_session\_stmt" and enter the session information.
+Next click  "alter\_session\_stmt" and enter the following session information.
 
 ````
 <copy>
@@ -276,7 +276,6 @@ alter session set nls_date_format='YYYY-MON-DD';
 
 ![](images/Altersession.png)
 
-From the report, we observed that, when we have a favorable index, the optimizer choose "index Range Scan" over full tablespace even when In-Memory is enabled. This is the same result we observed in Lab 02. Step 4-5.
 
 Next we can see other useful reports which could help during a POC.
 
@@ -286,11 +285,11 @@ Next we can see other useful reports which could help during a POC.
 
 ![](images/topSQLwithInMemory.png)
 
-You can click on 'Top Sqತ InMemory' report. The report show top sql queries which has run In-Memory atleast once. The chart will display all the distinct plan and elapsed time for sql in buffer as well, you see the average execution time for all plans and execution times which is very useful while doing a POC to compare the performance benifit of In-Memory.
+You can click on 'Top Sqತ InMemory' report.  This report generates a chart showing top SQL In-Memory queries for the last hour. If the same query SQL_ID has also run using the buffer cache, that too will be displayed for comparison.
 
 ## Approximate Query Processing and In-Memory.
 
-While InMemory is highly efficient in query filtering, min-max pruning and InMemory indexing, the query can further improve performance using "Approximate Query Processing" as a complimentary feature since 12c. They are features to improve performance of sort operations like DISTINCT, RANK, PERCENTILE, MEDIAN . These operations happen in the Process Global Area (PGA) of a user sessions. Since 12c, oracle has "approximate query processing" features that can make sorting operations faster but can be 95% or more accurate. For more information about this feature check out the  **[documentation.](https://docs.oracle.com/en/database/oracle/oracle-database/19/tgsql/query-optimizer-concepts.html#GUID-6273DFAC-7C4D-4540-AE11-B6973F237323)**
+While In-Memory is highly efficient in query filtering, min-max pruning and InMemory indexing, the query can further improve performance using "Approximate Query Processing" as a complimentary feature since 12c. They are features to improve performance of sort operations like DISTINCT, RANK, PERCENTILE, MEDIAN . These operations happen in the Process Global Area (PGA) of a user sessions. Since 12c, oracle has "approximate query processing" features that can make sorting operations faster but can be 95% or more accurate. For more information about this feature check out the  **[documentation.](https://docs.oracle.com/en/database/oracle/oracle-database/19/tgsql/query-optimizer-concepts.html#GUID-6273DFAC-7C4D-4540-AE11-B6973F237323)**
 This type of approximation is useful in certain Dashboards, BI applications where data needs to be real time, but small variance in dataset does not distort the visualizations of data.
 
 In 12.2 there are several APPROX functions introduced:
@@ -433,4 +432,4 @@ For more information about this, check out Oracle **[documentation.](https://doc
 
 ## Result Caching and InMemory
 
-We saw that materialized views can rewrite any SQL queries that use the underlying join condition or aggregation. Result Caching is a layer above this. This can save the result at a SQL statement level and for each bind value.  This can run over MATERIALIZED views or just over Tables. While it is not part of InMemory workshop, it is none the less one of the features that can improve performance of BI reports and dashboards type of applications. For more information check out the **[documentation.](https://docs.oracle.com/en/database/oracle/oracle-database/19/tgdba/tuning-result-cache.html#GUID-FA30CC32-17AB-477A-9E4C-B47BFE0968A1)**. 
+We saw that materialized views can rewrite any SQL queries that use the underlying join condition or aggregation. Result Caching is a layer above this. This can save the result at a SQL statement level and for each bind value.  This can run over MATERIALIZED views or just over Tables. While it is not part of InMemory workshop, it is none the less one of the features that can improve performance of BI reports and dashboards type of applications. For more information check out the **[documentation.](https://docs.oracle.com/en/database/oracle/oracle-database/19/tgdba/tuning-result-cache.html#GUID-FA30CC32-17AB-477A-9E4C-B47BFE0968A1)**.

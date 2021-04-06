@@ -41,6 +41,12 @@
             "description":"Multitenant Application Containers",
             "publisheddate": "04/07/2020",
             "filename":"./In_memory/sqlDev/InmemoryPOC.md"
+        },
+        {
+            "title": "LAB 05 :Miscellaneous Complimentory Features",
+            "description":"Multitenant Application Containers",
+            "publisheddate": "04/07/2021",
+            "filename":"./In_memory/sqlDev/InmemoryPOCMisc.md"
         }
 
     ]
