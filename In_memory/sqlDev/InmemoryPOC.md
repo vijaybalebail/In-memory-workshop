@@ -34,10 +34,10 @@ That is it. You have installed the In-Memory POC tool. Next, we need to connect 
     ![](images/SSBconnection.png)
     Click the "Test" button and if successful click "Save" to save the connection alias.
 
-5. Expand the "User Defined report" --> "InMemory POC tool" and click "Load Runstats" and choose the connection you just created. When you run it for the first time, you will get the following message displayed.
+5. Expand the "User Defined Report" --> "In_Memory POC tool" and click "Load Runstats" and choose the connection you just created. When you run it for the first time, you will get the following message displayed.
 
  ````
-  As a sys user please grant access to following tables and run again
+  As the sys user please grant access to following tables and run again
   grant select on SYS.V_$STATNAME to SSB;
   grant select on SYS.V_$MYSTAT to SSB;
   grant select on SYS.V_$TIMER to SSB;
@@ -49,7 +49,8 @@ That is it. You have installed the In-Memory POC tool. Next, we need to connect 
   ORA-24344: success with compilation error
  ````
 
-To add privileges, open a terminal window and start  sql\*plus. Copy and run the following.
+To run these grant statements, open a terminal window and start  sql\*plus. Copy and run the following.
+
 ````
   <copy>
   connect / as sysdba
@@ -61,7 +62,7 @@ To add privileges, open a terminal window and start  sql\*plus. Copy and run the
   grant select on SYS.V_$SESSTAT to SSB;
   </copy>
 ````
-After granting the privileges, re-run the "Load Runstats"
+After granting the privileges, re-run the "Load Runstats" report.
 After about 10 seconds, you should get the following display.
 
 ````
@@ -71,18 +72,20 @@ After about 10 seconds, you should get the following display.
   Package body recompiled in user SSB
   You are ready to run the report
 ````
-At this point, you have successfully imported the user defined report and installed the package.
+You have successfully imported the user defined report.
 
-## Verify the objects are Loaded.
+## Report 1 : View the objects loaded In-Memory.
+
 Click on the report "in-memory-objects"
-This displays the tables that have the property INMEMORY setup and loaded into In-Memory pool. In our test ensure you see LINEORDER,PART,CUSTOMER,DATE_DIM,SUPPLIER. If there are not show here, you can run the report "Load all inmemory tables".
+This displays the tables that are loaded into the In-Memory pool. You should see LINEORDER,PART,CUSTOMER,DATE_DIM and  SUPPLIER. If you don't see all of the above objects, ( they may not all have been populated yet ), run the "Load all inmemory tables" report to force load all the missing tables.
 
 ![](images/objectSizeBar.png)
 
-The chart shows the space it used in In-Memory compared to space occupied in buffer. Notice, that space in In-Memory is less than in buffer. Further, due to various compression levels, you could tune the compression level to fill the pool more economically.
+The above chart shows space used per table In-Memory, compared to space on disk. Notice, that space In-Memory is less than on disk due to default In-Memory compression.
 
-## Run SQL Query
-Now that the tool is installed, Click on "In-Memory Query vs  Buffer Cache".
+## Report 2 : Run In-Memory Query vs  Buffer Cache.
+
+Click on "In-Memory Query vs  Buffer Cache".
 In the popup , enter the following query to see the performance difference, SQL Plan and stats.
 
 ````
@@ -101,7 +104,8 @@ and lo_orderpriority = '5-LOW'; </copy>
 ![](images/enterQuery.png)
  Click "Apply"
 
- We will see the tool display the following .
+ The tool will display the following.
+
  ````
      query string is :
     select
@@ -247,44 +251,46 @@ and lo_orderpriority = '5-LOW'; </copy>
 
  Now look at the relevant DB stats to see the In-Memory optimizations.
 
+## Report 3 : Run In-Memory Query vs  Buffer Cache with custom session parameters.
 
-Some sql queries will need to set session parameters like Parallel Degree, Hint like invisible indexes, optimizer tuning parameters and NLS date formats. We already tested one query by enabling invisible index in our test. We can now run it again in Sql Developer.
+Some sql queries might need to mofify session parameters like Parallel Degree, NLS date formats, HINTS, tuning parameters, etc.  In Lab 2, we modified the session parameter invisible index. We can now run this scenario again in Sql Developer.
 
-Click and open "InMemory vs Buffer with Session Parameter" enter the query_string ..
+Click and open "InMemory vs Buffer with Session Parameter" enter the query_string.
+
 ````
 <copy>
-Select  /* Demo  */ lo_orderkey, lo_custkey, lo_revenue
-From    LINEORDER Where   lo_orderkey = 5000000;
+ select  * from user_tables where last_analyzed >  '2020-JAN-01';
 </copy>
 ````
 ![](images/query_string.jpg)
 
+Now we run this sql report without any session information, it will error out. To prevent this, you will either alter the sql and have to_date syntax or change the NLS_DATE_FORMAT. changing the session parameter is better as it would not change the SQL_ID of the query you are running.
 
 Next click in the "alter\_session\_stmt" and enter the session information.
 
 ````
 <copy>
- alter session set optimizer_use_invisible_indexes=true;
+alter session set nls_date_format='YYYY-MON-DD';
 </copy>
 ````
 
 ![](images/Altersession.png)
 
-From the report, we observed that, when we have a favorable index, the optimizer choose "index Range Scan" over full tablespace even when In-Memory is enabled. This is the same result we observed in Lab 03. Step 4-5.
+From the report, we observed that, when we have a favorable index, the optimizer choose "index Range Scan" over full tablespace even when In-Memory is enabled. This is the same result we observed in Lab 02. Step 4-5.
 
 Next we can see other useful reports which could help during a POC.
 
 
-## Top InmemorySQL report
+##  Report 4 : Top InmemorySQL report
 
 
 ![](images/topSQLwithInMemory.png)
 
-You can click on TopSqLInMemory report. The report show top few sql queries which ran InMemory atleast once. Since the tool runs the SQL once InMemory and once without it, you will find average execution time for all plans and execution times.
+You can click on 'Top Sqತ InMemory' report. The report show top sql queries which has run In-Memory atleast once. The chart will display all the distinct plan and elapsed time for sql in buffer as well, you see the average execution time for all plans and execution times which is very useful while doing a POC to compare the performance benifit of In-Memory.
 
-## Approximate Query Processing and InMemory.
+## Approximate Query Processing and In-Memory.
 
-While InMemory is highly efficient in query filtering, min-max pruning and InMemory indexing, the query can further improve performance using "Approximate Query Processing" as a complimentry feature. They are features to improve performance of sort operations like DISTINCT, RANP, PERCENTILE, MEDIAN . These operations happen in the Process Global Area (PGA) of a user sessions. Since 12c, oracle has "approximate query processing" features that can make sorting operations faster but can be 95% or more accurate. For more information about this feature check out the  **[documentation.](https://docs.oracle.com/en/database/oracle/oracle-database/19/tgsql/query-optimizer-concepts.html#GUID-6273DFAC-7C4D-4540-AE11-B6973F237323)**
+While InMemory is highly efficient in query filtering, min-max pruning and InMemory indexing, the query can further improve performance using "Approximate Query Processing" as a complimentary feature since 12c. They are features to improve performance of sort operations like DISTINCT, RANK, PERCENTILE, MEDIAN . These operations happen in the Process Global Area (PGA) of a user sessions. Since 12c, oracle has "approximate query processing" features that can make sorting operations faster but can be 95% or more accurate. For more information about this feature check out the  **[documentation.](https://docs.oracle.com/en/database/oracle/oracle-database/19/tgsql/query-optimizer-concepts.html#GUID-6273DFAC-7C4D-4540-AE11-B6973F237323)**
 This type of approximation is useful in certain Dashboards, BI applications where data needs to be real time, but small variance in dataset does not distort the visualizations of data.
 
 In 12.2 there are several APPROX functions introduced:
@@ -357,7 +363,7 @@ Run #  02 ran in 56.69  seconds
 ````
 Observe that the plan has HASH GROUP BY APPROX instead of "SORT GROUP BY"
 And the InMemory query tool about 28 seconds which is lesser than the previous InMemory runs.
-This feature also speeds up In Buffer runs too.
+This feature also speeds up In Buffer runs too. This feature is useful in BI repoers, when we need to build visualization, and summation reports where 95-99% accuracy of data does not alter the overall information convayed.   
 
 ## InMemory Materialized Views and Query Rewrite.
 
@@ -427,4 +433,4 @@ For more information about this, check out Oracle **[documentation.](https://doc
 
 ## Result Caching and InMemory
 
-We saw that materialized views can rewrite any SQL queries that use the underlying join condition or aggregation, Result Caching is a layer above this. This can save the result at a SQL statement level and for each bind value.  This can run over MATERIALIZED views or just over Tables. While it is not part of InMemory workshop, it is none the less one of the features that can improve performance of BI reports and dashboards type of applications.
+We saw that materialized views can rewrite any SQL queries that use the underlying join condition or aggregation. Result Caching is a layer above this. This can save the result at a SQL statement level and for each bind value.  This can run over MATERIALIZED views or just over Tables. While it is not part of InMemory workshop, it is none the less one of the features that can improve performance of BI reports and dashboards type of applications. For more information check out the **[documentation.](https://docs.oracle.com/en/database/oracle/oracle-database/19/tgdba/tuning-result-cache.html#GUID-FA30CC32-17AB-477A-9E4C-B47BFE0968A1)**. 
