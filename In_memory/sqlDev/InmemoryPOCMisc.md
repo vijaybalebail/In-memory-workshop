@@ -3,30 +3,34 @@
 
 ## Approximate Query Processing and In-Memory.
 
-While InMemory is highly efficient in query filtering, min-max pruning and In-Memory indexing, the query can further improve performance using "Approximate Query Processing" as a complimentary feature since 12c. They are features to improve performance of sort operations like DISTINCT, RANK, PERCENTILE, MEDIAN . These operations happen in the Process Global Area (PGA) of a user sessions. Since 12c, oracle has "approximate query processing" features that can make sorting operations faster but can be 95% or more accurate. For more information about this feature check out the  **[documentation.](https://docs.oracle.com/en/database/oracle/oracle-database/19/tgsql/query-optimizer-concepts.html#GUID-6273DFAC-7C4D-4540-AE11-B6973F237323)**
-This type of approximation is useful in certain Dashboards, BI applications where data needs to be real time, but small variance in dataset does not distort the visualizations of data.
+In-Memory optimization does not improve sorting operations. Sql query performance can further improve performance using "Approximate Query Processing", introduced in Oracle 12c. This feature improve performance of sort operations like DISTINCT, RANK, PERCENTILE, MEDIAN.
 
-In 12.2 there are several APPROX functions introduced:
-- APPROX_COUNT_DISTINCT_DETAIL
-- APPROX_COUNT_DISTINCT_AGG
-- TO_APPROX_COUNT_DISTINCT
-- APPROX_MEDIAN
-- APPROX_PERCENTILE
-- APPROX_PERCENTILE_DETAIL
-- APPROX_PERCENTILE_AGG
-- TO_APPROX_PERCENTILE
+Typical accuracy of approximate aggregation is over 97% (with 95% confidence) but use less CPU and avoid the I/0 cost of writing to temp files. These operations execute in the Process Global Area (PGA) of a user sessions. Approximate sort operations are faster while maintaining 95% or more accuracy.   
 
- “Approximate query processing is primarily used in data discovery applications to return quick answers to explorative queries. Users typically want to locate interesting data points within large amounts of data and then drill down to uncover further levels of detail. For explorative queries, quick responses are more important than exact values.”
+The functions that provide approximate results are as follows:
+- APPROX\_COUNT\_DISTINCT
+- APPROX\_COUNT\_DISTINCT_DETAIL
+- APPROX\_COUNT\_DISTINCT_AGG
+- TO\_APPROX\_COUNT\_DISTINCT
+- APPROX\_MEDIAN
+- APPROX\_PERCENTILE
+- APPROX\_PERCENTILE\_DETAIL
+- APPROX\_PERCENTILE\_AGG
+- TO\_APPROX\_PERCENTILE
+- APPROX\_COUNT
+- APPROX\_RANK
+- APPROX\_SUM
 
-The interesting part is that you can utilize the Approximate functions without changing code. There are three initialization parameters introduced to control which functions should be treated as an approximate function during run time.
+ “Approximate query processing is primarily used in data discovery applications to return quick answers to explorative queries. Users typically want to locate interesting data points within large amounts of data and then drill down to uncover further levels of detail. For explorative queries, quick responses are more important than exact values.”  
+
+You can utilize Approximate functions without changing Application code. There are three initialization parameters introduced to control which functions should be treated as approximate functions during run time.
 
 The initialization parameters are:
+- APROX\_FOR\_AGGREGATION  (TRUE|FALSE)
+- APPROX\_FOR\_COUNT_DISTINCT (TRUE|FLASE)
+- APPROX\_FOR\_PERCENTILE (ALL| NONE | PERCENTILE_CONT | PERCENTILE_CONT DETERMINISTIC | PERCENTILE_DISC | PERCENTILE_DISC DETERMINISTIC | ALL DETERMINISTIC )
 
-- approx_for_aggregation (TRUE|FALSE)
-- approx_for_count_distinct (TRUE|FLASE)
-- approx_for_percentile  (ALL| NONE | PERCENTILE_CONT | PERCENTILE_CONT DETERMINISTIC | PERCENTILE_DISC | PERCENTILE_DISC DETERMINISTIC | ALL DETERMINISTIC )
-
-To test this, let use first run the below query from sql-Dev tool "InMemory Query vs Buffer"
+To test this, let use first run the below query from sql-Dev tool "In-Memory Query vs Buffer"
 ````
 <copy>
 select lo_custkey, median(lo_ordtotalprice) from lineorder
@@ -80,12 +84,12 @@ This feature also speeds up In Buffer runs too. This feature is useful in BI rep
 
 ## InMemory Materialized Views and Query Rewrite.
 
-The best SQL plans are the once where we don't have to do any work to get the result. Oracle Materialized Views has been one of the solutions for BI Dashboards and Data warehouse reports for a while. Oracle Introduced automatic query rewrite that automatically use Materialized Views when available to speed the query.
-As we observed InMemory is very efficient in Data filtering and Vector Join plans for speeding the joins. However, if these joins and aggradations are precomputed, it would help us avoid accessing the underlying table until the data is altered. Adding Materialized View Logs can help capture the delta and refresh faster. However, it could have a slight impact on CPU resources during DML operations.
+The best SQL plans are the ones get the result with minimal work. Oracle Materialized Views has been one of the solutions for BI Dashboards and Data warehouse reports for a while. Oracle Introduced automatic query rewrite that automatically use Materialized Views when available to speed the query.
+As we observed In-Memory is very efficient in Data filtering and Vector Join plans for speeding the joins. However, if these joins and aggradations are precomputed, it would help us avoid accessing the underlying table until the data is altered. Adding Materialized View Logs can help capture the delta and refresh faster. However, it could have a slight impact on CPU resources during DML operations.
 With the support of these Materialized Views be loaded into InMemory pool, we can now access the pre computed joins and aggressions from InMemory.
 
 Let us test this out.
-For the same query we ran earlier, we can create a MV and see the performance difference. From sql*prompt or sql*developer worksheet, run the following creation script.
+For the same query we ran earlier, we can create a MV and see the performance difference. From sql\*prompt or sql\*developer worksheet, run the following creation script.
 ````
 <copy>
 DROP Materialized view MV_median ;
