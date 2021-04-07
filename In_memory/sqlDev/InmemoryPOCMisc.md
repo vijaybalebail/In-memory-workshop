@@ -84,12 +84,12 @@ This feature also speeds up In Buffer runs too. This feature is useful in BI rep
 
 ## InMemory Materialized Views and Query Rewrite.
 
-The best SQL plans are the ones get the result with minimal work. Oracle Materialized Views has been one of the solutions for BI Dashboards and Data warehouse reports for a while. Oracle Introduced automatic query rewrite that automatically use Materialized Views when available to speed the query.
-As we observed In-Memory is very efficient in Data filtering and Vector Join plans for speeding the joins. However, if these joins and aggradations are precomputed, it would help us avoid accessing the underlying table until the data is altered. Adding Materialized View Logs can help capture the delta and refresh faster. However, it could have a slight impact on CPU resources during DML operations.
-With the support of these Materialized Views be loaded into InMemory pool, we can now access the pre computed joins and aggressions from InMemory.
+The best SQL plans are the ones that minimize the amount of work it takes to get the result.  As we observed in the previous labs, In-Memory is very efficient at data filtering and Vector Joins for.  However, if aggregated data and joins are precomputed using Materialized Views, the need to perform these tasks In-Memory can be avoided entirely.
+Oracle Materialized Views contain already precomputed aggregates and joins, Oracle Database employs an extremely powerful process called query rewrite to quickly answer queries using materialized views. One of the major benefits of creating and maintaining materialized views is the ability to take advantage of query rewrite, which transforms a SQL statement expressed in terms of tables or views into a statement accessing one or more materialized views that are defined on the detail tables. The transformation is transparent to the end user or application, requiring no intervention and no reference to the materialized view in the SQL statement.
 
-Let us test this out.
-For the same query we ran earlier, we can create a MV and see the performance difference. From sql\*prompt or sql\*developer worksheet, run the following creation script.
+By loading Materialized Views into the InMemory pool, we can now access the pre computed joins and aggressions from InMemory. This make Materialized Views extremely useful for enabling BI Dashboards and Data warehouse reports.
+Let us test this out. For the same query we ran earlier, we can create a MV and see the performance difference. From sqlprompt or sqldeveloper worksheet, run the following creation script.
+
 ````
 <copy>
 DROP Materialized view MV_median ;
