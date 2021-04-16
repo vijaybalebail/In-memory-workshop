@@ -340,7 +340,7 @@ BONUS      YEAR                 DEFAULT
 
 ## Step 4: In-Memory External Tables. (Cloud and  Engineered Systems only)
 In-Memory External Tables builds on the theme of expanding analytic queries to all data, not just Oracle native data. Oracle Database already supports accessing external data with features like External Tables and Big Data SQL to allow fast and secure SQL query on all types of data. In-Memory External Tables allow essentially any type of data to be populated into the IM column store. This means non-native Oracle data can be analyzed with any data in Oracle Database using Oracle SQL and its rich feature set and also get the benefit of using all of the performance enhancing features of Database In-Memory.
-Currently , this feature is licensed for only Oracle Cloud databases and  Engineered Systems. We can still test the feature on EE after setting  "_exadata_feature_on" to true. This feature could eventually release on all EE releases. 
+Currently , this feature is licensed for only Oracle Cloud databases and  Engineered Systems. We can still test the feature on EE after setting  "_exadata_feature_on" to true. This feature could eventually release on all EE releases.
 
  ![](images/IMExternal.png)
 
@@ -467,6 +467,8 @@ Notice that tha plan changed from *EXTERNAL TABLE ACCESS FULL* to *EXTERNAL TABL
 Note that if you append data to the external file, you will have to repopulate to In-Memory.
 
 ## Step 5: In-Memory FastStart
+
+![](images/IMFaststart.png)
 
 In-Memory FastStart was introduced in 12.2 to speed up the re-population of the IM column store when an instance is restarted. IM FastStart works by periodically checkpointing IMCUs to a designated IM FastStart tablespace. This is done automatically by background processes. The motivation for FastStart is to reduce the I/O and CPU intensive work required to convert row based data into columnar data with the associated compression and IM storage indexes that are part of the population process. With IM FastStart the actual columnar formatted data is written out to persistent storage and can be read back faster and with less I/O and CPU than if the data has to be re-populated from the row-store. It is also worth noting that if the IM FastStart tablespace fills up or becomes unavailable the operation of the IM column store is not affected.
 
