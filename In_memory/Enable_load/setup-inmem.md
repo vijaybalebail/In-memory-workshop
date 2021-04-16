@@ -48,7 +48,7 @@ Note :  The default install of database usually set a parameter MEMORY_TARGET wh
 
     ````
     <copy>
-    alter system set inmemory_size=2G scope=spfile;
+    alter system set inmemory_size=3G scope=spfile;
     shutdown immediate;
     startup;
     </copy>
@@ -58,13 +58,13 @@ Note :  The default install of database usually set a parameter MEMORY_TARGET wh
 
     Total System Global Area 1.0033E+10 bytes
     Fixed Size                  9160168 bytes
-    Variable Size            1275068416 bytes
-    Database Buffers         6593445888 bytes
+    Variable Size            1140850688 bytes
+    Database Buffers         5653921792 bytes
     Redo Buffers                7614464 bytes
-    In-Memory Area           2147483648 bytes
-
+    In-Memory Area           3221225472 bytes
     Database mounted.
     Database opened.
+    SQL>
     ````
     Note that during startup, you will see the *In-Memory Area* and the size of the pool.
 
@@ -340,7 +340,7 @@ BONUS      YEAR                 DEFAULT
 
 ## Step 4: In-Memory External Tables. (Cloud and  Engineered Systems only)
 In-Memory External Tables builds on the theme of expanding analytic queries to all data, not just Oracle native data. Oracle Database already supports accessing external data with features like External Tables and Big Data SQL to allow fast and secure SQL query on all types of data. In-Memory External Tables allow essentially any type of data to be populated into the IM column store. This means non-native Oracle data can be analyzed with any data in Oracle Database using Oracle SQL and its rich feature set and also get the benefit of using all of the performance enhancing features of Database In-Memory.
-Currently , this feature is licensed for only Oracle Cloud databases and  Engineered Systems.
+Currently , this feature is licensed for only Oracle Cloud databases and  Engineered Systems. We can still test the feature on EE after setting  "_exadata_feature_on" to true. This feature could eventually release on all EE releases. 
 
  ![](images/IMExternal.png)
 
@@ -388,9 +388,26 @@ CREATE TABLE ext_emp  ( ID NUMBER(6), FIRST_NAME VARCHAR2(20),
  select count(*) from  ext_emp;
  SELECT * FROM table(dbms_xplan.display_cursor());
  </copy>
-````
+ PLAN_TABLE_OUTPUT
+--------------------------------------------------------------------------------
+SQL_ID  gsd9fmyquwh5c, child number 0
+-------------------------------------
+ select count(*) from  ext_emp
+Plan hash value: 546827939
+-------------------------------------------------------------------------------
+PLAN_TABLE_OUTPUT
+--------------------------------------------------------------------------------
+| Id  | Operation                   | Name    | Rows  | Cost (%CPU)| Time     |
+-------------------------------------------------------------------------------
+|   0 | SELECT STATEMENT            |         |       |   341 (100)|          |
+|   1 |  SORT AGGREGATE             |         |     1 |            |          |
+|   2 |   EXTERNAL TABLE ACCESS FULL| EXT_EMP |   102K|   341   (1)| 00:00:01 |
+-------------------------------------------------------------------------------
 
-19. Unlike regular tables, external table does not get populated into InMemory even if it has INMEMORY parameter on the external table. Confirm if it is not populated.
+````
+Note that in the above plan *EXTERNAL TABLE ACCESS FULL* would mean that oracle is still doing a scan of external table on disk and has not loaded the table to In-Memory.
+
+19. Unlike regular tables, external table does not get populated into In-Memory even if it has INMEMORY parameter on the external table. Confirm if it is not populated.
 
 ````
 <copy>
@@ -401,7 +418,8 @@ SELECT owner, segment_name, populate_status, con_id FROM v$im_segments where seg
 </copy>
 ````
 
-20. Populate the external table (manually) and verify that the population is complete..
+20. Populate the external table (manually) and verify that the population is complete.
+    External tables need to be manually populated
 ````
 <copy>
 EXEC dbms_inmemory.populate ('SSB','EXT_EMP')
@@ -417,37 +435,33 @@ SSB        EXT_EMP              COMPLETED              3
 ````
 
 21. Query In-Memory external table.
-We need to set  QUERY\_REWRITE\_INTEGRITY = STALE_TOLERATED in order for the optimizer to query table from In-Memory.
+
 
 ````
 <copy>
 col plan_table_output format a140
 SELECT count(*) FROM ext_emp ;
 SELECT * FROM table(dbms_xplan.display_cursor());
-
--- verify we can access INMEMORY in the sql plan.
-ALTER SESSION SET QUERY_REWRITE_INTEGRITY = STALE_TOLERATED;
-
-SELECT count(*) FROM ext_emp;
-SELECT * FROM table(dbms_xplan.display_cursor());
 </copy>
+
 SQL>
 PLAN_TABLE_OUTPUT
---------------------------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------
 SQL_ID  d720xtyhhdfx0, child number 0
 -------------------------------------
 SELECT count(*) FROM ext_emp
 Plan hash value: 546827939
--------------------------------------------------------------------------------
-PLAN_TABLE_OUTPUT
---------------------------------------------------------------------------------------------------------------------------------------------
-| Id  | Operation                   | Name    | Rows  | Cost (%CPU)| Time     |
--------------------------------------------------------------------------------
-|   0 | SELECT STATEMENT            |         |       |     6 (100)|          |
-|   1 |  SORT AGGREGATE             |         |     1 |            |          |
-|   2 |   EXTERNAL TABLE ACCESS FULL| EXT_EMP |  2079 |     6   (0)| 00:00:01 |
--------------------------------------------------------------------------------
 
+----------------------------------------------------------------------------------------
+
+PLAN_TABLE_OUTPUT
+------------------------------------------------------------------------------------------
+| Id  | Operation                            | Name    | Rows  | Cost (%CPU)| Time     |
+----------------------------------------------------------------------------------------
+|   0 | SELECT STATEMENT                     |         |       |   341 (100)|          |
+|   1 |  SORT AGGREGATE                      |         |     1 |            |          |
+|   2 |   EXTERNAL TABLE ACCESS INMEMORY FULL| EXT_EMP |   102K|   341   (1)| 00:00:01 |
+----------------------------------------------------------------------------------------
 ````
 Notice that tha plan changed from *EXTERNAL TABLE ACCESS FULL* to *EXTERNAL TABLE ACCESS INMEMORY FULL*.
 Note that if you append data to the external file, you will have to repopulate to In-Memory.

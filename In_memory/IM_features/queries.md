@@ -306,6 +306,8 @@ Up until now we have been focused on queries that scan only one table, the LINEO
 
 ## Step 5: In-Memory Expressions
 
+![](images/IMExpression.png)
+
    In-Memory Expressions (IM expressions) provide the ability to materialize simple deterministic expressions and store them in the In-Memory column store so they only need to be calculated once, not each time they are accessed. They are also treated like any other column in the IM column store so the database can scan and filter those columns and take advantage of all Database In-Memory query optimizations like SIMD vector processing and IM storage indexes.
 
    There are actually two types of IM expressions:

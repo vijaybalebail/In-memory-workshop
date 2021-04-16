@@ -24,7 +24,7 @@ begin
 table_name in ('V_$LATCH','V_$SESSTAT','V_$TIMER','V_$STATNAME','V_$MYSTAT') and grantee=string1;
  --dbms_output.put_line(cnt );
   if ( cnt != 5) then
-  dbms_output.put_line('As a sys user please grant access to following tables and run again');
+  dbms_output.put_line('As the sys user please grant access to following tables and run again');
   dbms_output.put_line('grant select on SYS.V_$STATNAME to '||string1||';');
   dbms_output.put_line('grant select on SYS.V_$MYSTAT to '||string1||';');
   dbms_output.put_line('grant select on SYS.V_$TIMER to '||string1||';');
@@ -36,14 +36,14 @@ table_name in ('V_$LATCH','V_$SESSTAT','V_$TIMER','V_$STATNAME','V_$MYSTAT') and
   execute immediate string2 ;
   dbms_output.put_line('Table Created');
   exception when others then
-   IF SQLCODE = -955 
-      THEN 
-         /* ORA-00955: name is already used by an existing object */ 
+   IF SQLCODE = -955
+      THEN
+         /* ORA-00955: name is already used by an existing object */
           dbms_output.put_line('temp table run_stats is already created');
-         
-      ELSE 
-         dbms_output.put_line(sqlerrm);  
-      END IF; 
+
+      ELSE
+         dbms_output.put_line(sqlerrm);
+      END IF;
   end;
   string2:='create or replace view stats as select ''STAT...'' || a.name name, b.value
       from v$statname a, v$mystat b  where a.statistic# = b.statistic#
@@ -340,12 +340,12 @@ end;
 				<table font="AR PL UMing CN" size="10" style="NORMAL" color="-16777216" userowshading="false" oddrowshading="-1" evenrowshading="-1" showborders="true" spacingbefore="12" spacingafter="12" horizontalalign="LEFT" />
 				<header enable="false" generatedate="false">
 					<data>
-					
-					
-					
-					
-					
-					
+
+
+
+
+
+
 
 
 
@@ -550,12 +550,12 @@ Copyalter session set optimizer_use_invisible_indexes=true;]]></value>
 				<table font="null" size="10" style="NORMAL" color="-16777216" userowshading="false" oddrowshading="-1" evenrowshading="-1" showborders="true" spacingbefore="12" spacingafter="12" horizontalalign="LEFT" />
 				<header enable="false" generatedate="false">
 					<data>
-					
-					
-					
-					
-					
-					
+
+
+
+
+
+
 
 
 
@@ -616,12 +616,12 @@ order by size_mb desc]]></sql>
 				<table font="AR PL UMing CN" size="10" style="NORMAL" color="-16777216" userowshading="false" oddrowshading="-1" evenrowshading="-1" showborders="true" spacingbefore="12" spacingafter="12" horizontalalign="LEFT" />
 				<header enable="false" generatedate="false">
 					<data>
-					
-					
-					
-					
-					
-					
+
+
+
+
+
+
 
 
 
@@ -681,12 +681,12 @@ from
 					<table font="null" size="10" style="NORMAL" color="-16777216" userowshading="false" oddrowshading="-1" evenrowshading="-1" showborders="true" spacingbefore="12" spacingafter="12" horizontalalign="LEFT" />
 					<header enable="false" generatedate="false">
 						<data>
-						
-						
-						
-						
-						
-						
+
+
+
+
+
+
 
 
 
@@ -763,12 +763,12 @@ order by bytes desc]]></sql>
 					<table font="null" size="10" style="NORMAL" color="-16777216" userowshading="false" oddrowshading="-1" evenrowshading="-1" showborders="true" spacingbefore="12" spacingafter="12" horizontalalign="LEFT" />
 					<header enable="false" generatedate="false">
 						<data>
-						
-						
-						
-						
-						
-						
+
+
+
+
+
+
 
 
 						null																																																						</data>
@@ -790,9 +790,9 @@ order by bytes desc]]></sql>
 			<query>
 				<sql><![CDATA[SELECT a.OBJECT_NAME, b.INMEMORY_PRIORITY, b.POPULATE_STATUS, count(1) IMCUs,sum(num_rows),
 TO_CHAR(c.CREATETIME, 'MM/DD/YYYY HH24:MI:SS.FF2') START_POP, TO_CHAR(MAX(d.TIMESTAMP),'MM/DD/YYYY HH24:MI:SS.FF2') FINISH_POP
-FROM DBA_OBJECTS a, V$IM_SEGMENTS b, 
+FROM DBA_OBJECTS a, V$IM_SEGMENTS b,
 V$IM_SEGMENTS_DETAIL c, V$IM_HEADER d
-WHERE 
+WHERE
 a.OBJECT_NAME = b.SEGMENT_NAME
 AND a.OBJECT_TYPE = 'TABLE'
 AND a.OBJECT_ID = c.BASEOBJ
@@ -811,12 +811,12 @@ ORDER BY FINISH_POP]]></sql>
 					<table font="null" size="10" style="NORMAL" color="-16777216" userowshading="false" oddrowshading="-1" evenrowshading="-1" showborders="true" spacingbefore="12" spacingafter="12" horizontalalign="LEFT" />
 					<header enable="false" generatedate="false">
 						<data>
-						
-						
-						
-						
-						
-						
+
+
+
+
+
+
 
 
 						null																																																						</data>
@@ -857,12 +857,12 @@ where sql_id in (select distinct sql_id from v$sql_plan  where options like '%IN
 					<table font="null" size="10" style="NORMAL" color="-16777216" userowshading="false" oddrowshading="-1" evenrowshading="-1" showborders="true" spacingbefore="12" spacingafter="12" horizontalalign="LEFT" />
 					<header enable="false" generatedate="false">
 						<data>
-						
-						
-						
-						
-						
-						
+
+
+
+
+
+
 						null																																										</data>
 					</header>
 					<footer enable="false" generatedate="false">
@@ -934,12 +934,12 @@ order by bytes desc]]></sql>
 				<table font="AR PL UMing CN" size="10" style="NORMAL" color="-16777216" userowshading="false" oddrowshading="-1" evenrowshading="-1" showborders="true" spacingbefore="12" spacingafter="12" horizontalalign="LEFT" />
 				<header enable="false" generatedate="false">
 					<data>
-					
-					
-					
-					
-					
-					
+
+
+
+
+
+
 
 
 
@@ -1158,12 +1158,12 @@ END;]]></sql>
 				<table font="null" size="10" style="NORMAL" color="-16777216" userowshading="false" oddrowshading="-1" evenrowshading="-1" showborders="true" spacingbefore="12" spacingafter="12" horizontalalign="LEFT" />
 				<header enable="false" generatedate="false">
 					<data>
-					
-					
-					
-					
-					
-					
+
+
+
+
+
+
 
 
 
@@ -1216,12 +1216,12 @@ END;]]></sql>
 				<table font="AR PL UMing CN" size="10" style="NORMAL" color="-16777216" userowshading="false" oddrowshading="-1" evenrowshading="-1" showborders="true" spacingbefore="12" spacingafter="12" horizontalalign="LEFT" />
 				<header enable="false" generatedate="false">
 					<data>
-					
-					
-					
-					
-					
-					
+
+
+
+
+
+
 
 
 
@@ -1340,12 +1340,12 @@ end;]]></sql>
 				<table font="AR PL UMing CN" size="10" style="NORMAL" color="-16777216" userowshading="false" oddrowshading="-1" evenrowshading="-1" showborders="true" spacingbefore="12" spacingafter="12" horizontalalign="LEFT" />
 				<header enable="false" generatedate="false">
 					<data>
-					
-					
-					
-					
-					
-					
+
+
+
+
+
+
 
 
 
@@ -1418,12 +1418,12 @@ where sql_id in (select distinct sql_id from v$sql_plan  where options like '%IN
 				<table font="null" size="10" style="NORMAL" color="-16777216" userowshading="false" oddrowshading="-1" evenrowshading="-1" showborders="true" spacingbefore="12" spacingafter="12" horizontalalign="LEFT" />
 				<header enable="false" generatedate="false">
 					<data>
-					
-					
-					
-					
-					
-					
+
+
+
+
+
+
 					null																																			</data>
 				</header>
 				<footer enable="false" generatedate="false">
@@ -1484,12 +1484,12 @@ end;]]></sql>
 					<table font="null" size="10" style="NORMAL" color="-16777216" userowshading="false" oddrowshading="-1" evenrowshading="-1" showborders="true" spacingbefore="12" spacingafter="12" horizontalalign="LEFT" />
 					<header enable="false" generatedate="false">
 						<data>
-						
-						
-						
-						
-						
-						
+
+
+
+
+
+
 						null																																										</data>
 					</header>
 					<footer enable="false" generatedate="false">
