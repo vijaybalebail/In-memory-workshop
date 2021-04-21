@@ -112,7 +112,7 @@ Now that you’ve gotten familiar with the IM column store let’s look at the b
     In order to confirm that the IM column store was used, we need to examine the session level statistics. Notice that in the INMEMORY run several IM statistics show up (for this lab we have only displayed some key statistics – there are lots more!). The only one we are really interested in now is the "IM scan CUs columns accessed" which highlights IM optimization to further improve performance.
 
 ## Step 2: In-Memory Storage Index
-  In the [*Introduction and Overview*](?lab=introduction-overview#3.In-MemoryStorageIndexes), we saw how min-max and dictionary based pruning could work as Index. We will now query the table and filter based on a where condition.
+  In the [*Introduction and Overview*](?lab=introduction-overview#3.In-MemoryStorageIndexes), we saw how min-max and dictionary based pruning could work as s substitute for Index. We will now query the table and filter based on a where condition.
 
 4.  Let's look for a specific order in the LINEORDER table based on the order key.  Typically, a full table scan is not an efficient execution plan when looking for a specific entry in a table.  
 
@@ -422,10 +422,10 @@ This simple example shows that even relatively simple expressions can be computa
  ````
 
 Since 18c, there are 2 ways to capture the expressions automatically. They are either during a window or current.
-For the window function, we use dbms_inmemory_admin.ime_open_capture_window() to start.
-dbms_inmemory_admin.ime_close_capture_window() to stop capturing the inmemory expression and run
-dbms_inmemory_admin.ime_capture_expressions('WINDOW') to automatically generate automatic In-Memory expressions.
-The other alternative is to run dbms_inmemory_admin.ime_capture_expressions('CURRENT') which will capture the expressions from the shared pool.
+For the window function, we use dbms\_inmemory\_admin.ime\_open\_capture\_window() to start.
+dbms\_inmemory\_admin.ime\_close\_capture\_window() to stop capturing the inmemory expression and run
+dbms\_inmemory\_admin.ime\_capture\_expressions('WINDOW') to automatically generate automatic In-Memory expressions.
+The other alternative is to run dbms\_inmemory\_admin.ime\_capture\_expressions('CURRENT') which will capture the expressions from the shared pool.
 19. In our example, we will capture the sqls from shared pool using the "CURRENT" expression.
 
   ````
@@ -478,8 +478,8 @@ set autotrace off
 </copy>
 ````
 
-   How to tell if the IM expression has actually been populated? There is another view, V$IM_IMECOL_CU that shows the columns populated and number of IMEUs they occupy.
-   To drop expressions, DBMS_INMEMORY_ADMIN.IME_DROP_ALL_EXPRESSIONS procedure drops all SYS_IME expression virtual columns in the database. The DBMS_INMEMORY.IME_DROP_EXPRESSIONS procedure drops a specified set of SYS_IME virtual columns from a table.
+   How to tell if the IM expression has actually been populated? There is another view, V$IM\_IMECOL\_CU that shows the columns populated and number of IMEUs they occupy.
+   To drop expressions, DBMS\_INMEMORY\_ADMIN.IME\_DROP\_ALL\_EXPRESSIONS procedure drops all SYS\_IME expression virtual columns in the database. The DBMS\_INMEMORY.IME\_DROP\_EXPRESSIONS procedure drops a specified set of SYS\_IME virtual columns from a table.
 
 ## Step 6: In-Memory Optimized Arithmetic
 

@@ -418,7 +418,7 @@ END;
 </copy>
 ````
 This job will run for about 5 minutes. You can run the following query to see the average time each query took under different load conditions.
-What you will observe is that the *query performance is consistent* when running (BASE_RUN), or when there is bulk loading (QRUN\_BATCH) or DML(QRUN\_DML), and all (QRUN_ALL) operations are performed on the table being queried. This indicates that  *In-Memory queries are not affected by DML operations*.
+What you will observe is that the *query performance is consistent* when running (BASE_RUN), or when there is bulk loading (QRUN\_BATCH) or DML(QRUN\_DML), and all (QRUN\_ALL) operations are performed on the table being queried. This indicates that  *In-Memory queries are not affected by DML operations*.
 ````
 <copy>
 select run_type,qx, count(1) runs, round(avg(qrun_time),3)
